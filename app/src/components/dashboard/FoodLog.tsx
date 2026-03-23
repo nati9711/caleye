@@ -29,7 +29,7 @@ export default function FoodLog({ entries, onEditEntry, className = '' }: FoodLo
       {sortedEntries.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-sm max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
+        <div className="space-y-2 sm:space-y-sm max-h-[500px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
           {sortedEntries.map((entry, i) => (
             <FoodLogEntry
               key={entry.id}
@@ -48,7 +48,7 @@ export default function FoodLog({ entries, onEditEntry, className = '' }: FoodLo
 
 function EmptyState() {
   return (
-    <div className="glass-card p-xl flex flex-col items-center justify-center text-center">
+    <div className="glass-card p-lg sm:p-xl flex flex-col items-center justify-center text-center animate-fade-in-up">
       <span className="text-4xl mb-md">🍽️</span>
       <p className="text-text-primary text-body font-semibold mb-xs">
         עדיין לא אכלת היום

@@ -11,7 +11,7 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
   const [mobileTab, setMobileTab] = useState<'dash' | 'camera' | 'workout' | 'profile'>('dash');
 
   return (
-    <div className="min-h-screen pt-16 pb-16 md:pb-0" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen pt-14 sm:pt-16 pb-16 md:pb-0" style={{ background: '#0a0a0f' }}>
       {/* Desktop: grid with main + sidebar */}
       <div className="md:grid md:grid-cols-[1fr_320px] max-w-[1440px] mx-auto">
         {/* Main scrollable area */}

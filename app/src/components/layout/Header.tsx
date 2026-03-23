@@ -12,33 +12,34 @@ interface HeaderProps {
  * Fixed top header with glassmorphism background.
  * Displays logo, streak counter with animated flame, level badge,
  * user name, and settings icon. RTL layout.
+ * Mobile: hides text labels, shows only icons + numbers.
  */
 export default function Header({ profile, onSettingsClick }: HeaderProps) {
   const levelInfo = LEVELS.find((l) => l.level === profile.level) ?? LEVELS[0];
 
   return (
-    <header className="glass-header fixed top-0 inset-x-0 z-50 h-16 flex items-center justify-between px-lg">
+    <header className="glass-header fixed top-0 inset-x-0 z-50 h-14 sm:h-16 flex items-center justify-between px-3 sm:px-lg">
       {/* Right side (RTL: logo + brand) */}
-      <div className="flex items-center gap-sm">
+      <div className="flex items-center gap-xs sm:gap-sm">
         {/* Logo */}
-        <div className="w-9 h-9 rounded-lg gradient-fill flex items-center justify-center">
-          <span className="text-bg-deep font-bold text-lg leading-none">C</span>
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg gradient-fill flex items-center justify-center">
+          <span className="text-bg-deep font-bold text-base sm:text-lg leading-none">C</span>
         </div>
 
-        {/* Brand name */}
+        {/* Brand name — hidden on mobile */}
         <h1 className="font-sora font-bold text-xl gradient-text hidden sm:block">
           CalEye
         </h1>
       </div>
 
-      {/* Center: Streak + Level */}
-      <div className="flex items-center gap-lg">
+      {/* Center: Streak + Level — compact on mobile */}
+      <div className="flex items-center gap-sm sm:gap-lg">
         {/* Streak counter */}
         <div className="flex items-center gap-xs">
-          <span className="animate-fire-pulse inline-block text-xl leading-none">
+          <span className="animate-fire-pulse inline-block text-lg sm:text-xl leading-none">
             🔥
           </span>
-          <span className="font-bold text-text-primary text-body">
+          <span className="font-bold text-text-primary text-body-sm sm:text-body">
             {profile.currentStreak}
           </span>
           <span className="text-text-secondary text-body-sm hidden sm:inline">
@@ -48,8 +49,8 @@ export default function Header({ profile, onSettingsClick }: HeaderProps) {
 
         {/* Level badge */}
         <div className="flex items-center gap-xs">
-          <span className="text-accent-warm text-lg leading-none">⭐</span>
-          <span className="text-text-primary font-semibold text-body-sm">
+          <span className="text-accent-warm text-base sm:text-lg leading-none">⭐</span>
+          <span className="text-text-primary font-semibold text-caption sm:text-body-sm">
             Lv{profile.level}
           </span>
           <span className="text-text-secondary text-body-sm hidden md:inline">
@@ -59,16 +60,16 @@ export default function Header({ profile, onSettingsClick }: HeaderProps) {
       </div>
 
       {/* Left side (RTL): Name + Settings */}
-      <div className="flex items-center gap-md">
-        {/* User name */}
+      <div className="flex items-center gap-sm sm:gap-md">
+        {/* User name — hidden on mobile */}
         <span className="text-text-secondary text-body-sm hidden sm:block">
           {profile.name}
         </span>
 
-        {/* Settings gear */}
+        {/* Settings gear — 44px touch target */}
         <button
           onClick={onSettingsClick}
-          className="w-9 h-9 rounded-lg flex items-center justify-center
+          className="w-10 h-10 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center
             text-text-secondary hover:text-text-primary hover:bg-bg-elevated
             transition-colors duration-200"
           aria-label="הגדרות"

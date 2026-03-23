@@ -168,8 +168,8 @@ export default function MacroRing({
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-md text-body-sm">
+      {/* Legend — wraps on very small screens */}
+      <div className="flex items-center gap-sm sm:gap-md text-caption sm:text-body-sm flex-wrap justify-center">
         <LegendItem
           color={MACRO_COLORS.protein}
           label={MACRO_LABELS.protein}
