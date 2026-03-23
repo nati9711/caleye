@@ -209,6 +209,9 @@ function parseDetectionResponse(raw: string): DetectionResult {
     const allFoodNames = parsed.foods.map((f: { foodHe?: string }) => f.foodHe || '').join(' + ');
     // Sum up estimated grams from all foods
     const totalGrams = parsed.foods.reduce((sum: number, f: { estimated_grams?: number }) => sum + (f.estimated_grams ?? 100), 0);
+    // Check if any food needs user input
+    const anyNeedsInput = parsed.foods.some((f: { needs_user_input?: boolean }) => f.needs_user_input);
+    const userQuestion = parsed.foods.find((f: { user_question_he?: string }) => f.user_question_he)?.user_question_he ?? undefined;
     return {
       eating: true,
       food: parsed.foods.map((f: { food?: string; name_en?: string }) => f.food || f.name_en || '').join(' + '),
@@ -219,6 +222,8 @@ function parseDetectionResponse(raw: string): DetectionResult {
       carbs: clampNumber(parsed.total_carbs ?? mainFood?.carbs, 0, 500),
       fat: clampNumber(parsed.total_fat ?? mainFood?.fat, 0, 500),
       confidence: clampNumber(mainFood?.confidence ?? mainFood?.confidence_identification, 0, 1),
+      needsUserInput: anyNeedsInput || undefined,
+      userQuestionHe: userQuestion,
     };
   }
 
@@ -261,8 +266,7 @@ export async function analyzeFrame(
 ): Promise<DetectionResult> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    console.warn('[CalEye] No Gemini API key configured');
-    return { eating: false };
+    throw new Error('NO_API_KEY');
   }
 
   if (!canMakeCall()) {
@@ -274,14 +278,9 @@ export async function analyzeFrame(
 
   console.log('[CalEye] 🔍 Analyzing frame via OpenRouter...');
 
-  try {
-    const result = await analyzeWithFetch(base64Image, apiKey);
-    console.log('[CalEye] ✅ Result:', JSON.stringify(result));
-    return result;
-  } catch (fetchError) {
-    console.error('[CalEye] ❌ Failed:', fetchError);
-    return { eating: false };
-  }
+  const result = await analyzeWithFetch(base64Image, apiKey);
+  console.log('[CalEye] ✅ Result:', JSON.stringify(result));
+  return result;
 }
 
 // ── Connection tester ────────────────────────────────────────────────────────

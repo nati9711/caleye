@@ -1,15 +1,17 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Webcam from 'react-webcam';
 import { useWebcam } from '../../hooks/useWebcam';
 import { useFoodDetection } from '../../hooks/useFoodDetection';
 import { getApiKey } from '../../lib/gemini';
+import { getPostMealMessage } from '../../lib/coach';
+import { useAppStore } from '../../stores/app-store';
 import Header from '../layout/Header';
 import MainLayout from '../layout/MainLayout';
 import DailySummary from './DailySummary';
 import HourlyChart from './HourlyChart';
 import FoodLog from './FoodLog';
-import type { FoodEntry, DailyLog, UserProfile, CoachMessage } from '../../types';
+import type { FoodEntry, UserProfile } from '../../types';
 
 type FacingMode = 'user' | 'environment';
 
@@ -17,18 +19,6 @@ type FacingMode = 'user' | 'environment';
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-function createEmptyLog(): DailyLog {
-  return {
-    date: getTodayDate(),
-    entries: [],
-    totalCalories: 0,
-    totalProtein: 0,
-    totalCarbs: 0,
-    totalFat: 0,
-    xpEarned: 0,
-  };
 }
 
 function buildHourlyData(entries: FoodEntry[]) {
@@ -44,6 +34,7 @@ function buildHourlyData(entries: FoodEntry[]) {
   return hours;
 }
 
+/** Fallback profile used when the store has no profile yet (first-time user). */
 const DEFAULT_PROFILE: UserProfile = {
   name: 'משתמש',
   gender: 'male',
@@ -191,42 +182,55 @@ function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClo
 // ── Main Dashboard ──────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  // State
-  const [todayLog, setTodayLog] = useState<DailyLog>(createEmptyLog);
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  // ── Zustand store selectors ────────────────────────────────────────────────
+  const todayLog = useAppStore((s) => s.todayLog);
+  const storeProfile = useAppStore((s) => s.profile);
+  const coachMessages = useAppStore((s) => s.coachMessages);
+
+  // Store actions — stable references (no re-render on call)
+  const addFoodEntry = useAppStore((s) => s.addFoodEntry);
+  const addXP = useAppStore((s) => s.addXP);
+  const addCoachMessage = useAppStore((s) => s.addCoachMessage);
+
+  // Handle null profile (first-time user): initialize default in store
+  useEffect(() => {
+    if (!storeProfile) {
+      // Set the default profile in the store so it persists
+      useAppStore.setState({ profile: DEFAULT_PROFILE });
+    }
+  }, [storeProfile]);
+
+  // Non-null profile for rendering — always has a value
+  const profile: UserProfile = storeProfile ?? DEFAULT_PROFILE;
+
+  // Latest coach message for display
+  const latestCoachMsg = coachMessages.length > 0
+    ? coachMessages[coachMessages.length - 1] ?? null
+    : null;
+
+  // ── Local UI state (not persisted) ─────────────────────────────────────────
   const [toast, setToast] = useState<FoodEntry | null>(null);
   const [showApiKey, setShowApiKey] = useState(!getApiKey());
-  const [coachMsg, setCoachMsg] = useState<CoachMessage | null>(null);
   const [facingMode, setFacingMode] = useState<FacingMode>('user');
 
   // Webcam
   const { webcamRef, status: webcamStatus, isReady, capture, error: webcamError } = useWebcam();
 
-  // Food detection callbacks
+  // Food detection callbacks — use store actions
   const onFoodDetected = useCallback((entry: FoodEntry) => {
-    setTodayLog((prev) => {
-      const entries = [entry, ...prev.entries];
-      return {
-        ...prev,
-        entries,
-        totalCalories: prev.totalCalories + entry.calories,
-        totalProtein: prev.totalProtein + entry.protein,
-        totalCarbs: prev.totalCarbs + entry.carbs,
-        totalFat: prev.totalFat + entry.fat,
-      };
-    });
+    // Add food entry to store (handles totals, badge checks, unique foods)
+    addFoodEntry(entry);
 
-    // Coach message
+    // Generate coach message using the coach module
+    const currentProfile = useAppStore.getState().profile ?? DEFAULT_PROFILE;
+    const coachText = getPostMealMessage(entry, currentProfile);
+
     const isHealthy = entry.calories < 400;
-    setCoachMsg({
-      id: entry.id,
-      text: isHealthy
-        ? `מעולה! ${entry.foodHe} — בחירה טובה. +5 XP 💚`
-        : `${entry.foodHe}? מבין אותך! מה דעתך על הליכה קטנה אחר כך? 😉`,
-      timestamp: Date.now(),
+    addCoachMessage({
+      text: coachText,
       category: isHealthy ? 'healthy_meal' : 'unhealthy_meal',
     });
-  }, []);
+  }, [addFoodEntry, addCoachMessage]);
 
   const onToast = useCallback((entry: FoodEntry) => {
     setToast(entry);
@@ -234,9 +238,8 @@ export default function DashboardPage() {
   }, []);
 
   const onXpAwarded = useCallback((xp: number) => {
-    setProfile((prev) => ({ ...prev, totalXP: prev.totalXP + xp, xpEarned: (prev.totalXP || 0) + xp }));
-    setTodayLog((prev) => ({ ...prev, xpEarned: prev.xpEarned + xp }));
-  }, []);
+    addXP(xp, 'food_detected');
+  }, [addXP]);
 
   // Detection hook
   const { isDetecting, isPending, toggleDetection, error: detectionError } = useFoodDetection({
@@ -247,19 +250,29 @@ export default function DashboardPage() {
     isWebcamReady: isReady,
   });
 
-  // Delete entry handler
+  // Delete entry handler — recalculate by removing entry and resetting totals
   const onDeleteEntry = useCallback((entryId: string) => {
-    setTodayLog((prev) => {
-      const entry = prev.entries.find((e) => e.id === entryId);
-      if (!entry) return prev;
-      return {
-        ...prev,
-        entries: prev.entries.filter((e) => e.id !== entryId),
-        totalCalories: prev.totalCalories - entry.calories,
-        totalProtein: prev.totalProtein - entry.protein,
-        totalCarbs: prev.totalCarbs - entry.carbs,
-        totalFat: prev.totalFat - entry.fat,
-      };
+    const state = useAppStore.getState();
+    const entry = state.todayLog.entries.find((e) => e.id === entryId);
+    if (!entry) return;
+
+    const newEntries = state.todayLog.entries.filter((e) => e.id !== entryId);
+    const totals = newEntries.reduce(
+      (acc, e) => ({
+        totalCalories: acc.totalCalories + e.calories,
+        totalProtein: acc.totalProtein + e.protein,
+        totalCarbs: acc.totalCarbs + e.carbs,
+        totalFat: acc.totalFat + e.fat,
+      }),
+      { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 },
+    );
+
+    useAppStore.setState({
+      todayLog: {
+        ...state.todayLog,
+        entries: newEntries,
+        ...totals,
+      },
     });
   }, []);
 
@@ -332,13 +345,13 @@ export default function DashboardPage() {
               </span>
             </div>
             {/* Coach message overlay on mobile */}
-            {coachMsg && (
+            {latestCoachMsg && (
               <div
                 className="absolute top-2 right-2 max-w-[60%] px-3 py-1.5 rounded-xl text-xs text-gray-200 leading-snug"
                 style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
               >
                 <span style={{ color: '#22D97F' }}>🤖 גל: </span>
-                {coachMsg.text}
+                {latestCoachMsg.text}
               </div>
             )}
             {/* Scan line animation when detecting */}
@@ -420,8 +433,8 @@ export default function DashboardPage() {
                 <span className="text-sm font-bold" style={{ color: '#22D97F' }}>גל</span>
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">
-                {coachMsg
-                  ? coachMsg.text
+                {latestCoachMsg
+                  ? latestCoachMsg.text
                   : todayLog.entries.length === 0
                     ? `בוקר טוב ${profile.name}! המצלמה פעילה — תאכל משהו ואני אזהה את זה 😎`
                     : `יום מעולה ${profile.name}! ${todayLog.totalCalories} קלוריות עד עכשיו 💪`

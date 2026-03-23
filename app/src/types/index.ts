@@ -139,6 +139,8 @@ export interface DetectionResult {
   carbs?: number;
   fat?: number;
   confidence?: number;
+  needsUserInput?: boolean;
+  userQuestionHe?: string;
 }
 
 /** Macro preset option for onboarding */

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { analyzeFrame } from '../lib/gemini';
 import { lookupNutrition } from '../lib/nutrition';
+import { detectBarcode } from '../lib/barcode';
+import { lookupBarcode } from '../lib/openFoodFacts';
 import type { DetectionResult, FoodEntry } from '../types';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -46,6 +48,8 @@ export interface FoodDetectionCallbacks {
   onXpAwarded: (xp: number) => void;
   /** Whether the webcam is ready. */
   isWebcamReady: boolean;
+  /** Called when AI has low confidence or needs user input — entry needs confirmation */
+  onNeedsConfirmation?: (entry: FoodEntry, userQuestion?: string) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -140,19 +144,49 @@ export function useFoodDetection(
     setError(null);
 
     try {
+      // ── Step 1: Try barcode detection (free, instant, local) ────────────
+      const barcode = await detectBarcode(frame);
+      if (barcode) {
+        if (!isDuplicate(barcode, recentDetectionsRef.current)) {
+          console.log(`[CalEye] Barcode detected: ${barcode}`);
+          const product = await lookupBarcode(barcode);
+          if (product) {
+            console.log(`[CalEye] Product found via barcode: ${product.name}`);
+            const servingScale = product.servingGrams / 100;
+            const entry: FoodEntry = {
+              id: generateId(),
+              timestamp: Date.now(),
+              food: product.name,
+              foodHe: product.nameHe,
+              calories: Math.round(product.calories * servingScale),
+              protein: Math.round(product.protein * servingScale * 10) / 10,
+              carbs: Math.round(product.carbs * servingScale * 10) / 10,
+              fat: Math.round(product.fat * servingScale * 10) / 10,
+              confidence: 0.99, // barcode = exact match
+              thumbnail: `data:image/jpeg;base64,${frame}`,
+            };
+
+            recentDetectionsRef.current = [
+              { food: barcode, timestamp: Date.now() },
+              ...recentDetectionsRef.current,
+            ].slice(0, MAX_RECENT_DETECTIONS);
+
+            console.log(`[CalEye] Source: Open Food Facts (barcode)`);
+            cbs.onFoodDetected(entry);
+            cbs.onToast(entry);
+            cbs.onXpAwarded(XP_PER_DETECTION);
+            return; // Skip Gemini — barcode data is exact
+          }
+          console.log(`[CalEye] Barcode ${barcode} not found in Open Food Facts, falling back to Gemini`);
+        }
+      }
+
+      // ── Step 2: No barcode → existing Gemini + USDA flow ────────────────
       const result = await analyzeFrame(frame);
       setLastResult(result);
 
       if (!result.eating) {
         return; // Not eating — nothing to do
-      }
-
-      // Check confidence threshold
-      if ((result.confidence ?? 0) < MIN_CONFIDENCE) {
-        console.debug(
-          `[CalEye] Below confidence threshold: ${result.confidence}`
-        );
-        return;
       }
 
       // Check dedup
@@ -189,15 +223,36 @@ export function useFoodDetection(
 
       console.log(`[CalEye] 📊 Source: ${usdaData ? 'USDA ✅' : 'AI estimate ⚠️'}`);
 
-      // Notify callbacks
+      // Low confidence or needs_user_input → route to confirmation dialog
+      const isLowConfidence = (result.confidence ?? 0) < MIN_CONFIDENCE;
+      const needsInput = result.needsUserInput === true;
+
+      if ((isLowConfidence || needsInput) && cbs.onNeedsConfirmation) {
+        console.debug(`[CalEye] Needs confirmation — confidence: ${result.confidence}, needsInput: ${needsInput}`);
+        cbs.onNeedsConfirmation(entry, result.userQuestionHe);
+        return;
+      }
+
+      // High confidence — auto-log
       cbs.onFoodDetected(entry);
       cbs.onToast(entry);
       cbs.onXpAwarded(XP_PER_DETECTION);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'שגיאה בזיהוי מזון';
+      const message = err instanceof Error ? err.message : 'שגיאה בזיהוי מזון';
       console.error('[CalEye] Detection error:', err);
-      setError(message);
+
+      // Differentiate error types for the UI
+      if (message === 'NO_API_KEY') {
+        setError('NO_API_KEY');
+      } else if (message.includes('401') || message.includes('403')) {
+        setError('INVALID_API_KEY');
+      } else if (message.includes('429')) {
+        setError('RATE_LIMITED');
+      } else if (message.includes('fetch') || message.includes('network') || message.includes('Failed')) {
+        setError('NETWORK_ERROR');
+      } else {
+        setError(message);
+      }
     } finally {
       isPendingRef.current = false;
       setIsPending(false);
