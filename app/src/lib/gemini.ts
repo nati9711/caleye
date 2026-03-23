@@ -6,12 +6,54 @@ const GEMINI_MODEL = 'google/gemini-2.0-flash-001';
 
 const API_BASE_URL = 'https://openrouter.ai/api/v1';
 
-const DETECTION_PROMPT = `Analyze this image from a webcam. Determine if the person is eating or holding food.
-If yes, identify the food and estimate nutritional values.
-Respond in JSON only:
-If eating: { "eating": true, "food": "food name in English", "foodHe": "שם בעברית", "calories": number, "protein": number, "carbs": number, "fat": number, "confidence": 0.0-1.0 }
-If not eating: { "eating": false }
-Be specific about portions. Estimate for a single serving.`;
+const DETECTION_PROMPT = `You are an expert nutritionist analyzing a webcam image for food detection.
+
+ANALYSIS STEPS (follow this chain of thought):
+1. DETECT: Is there food visible in the image? Look for food items, plates, bowls, packaging, or someone eating.
+2. CLASSIFY: For each food — is it packaged (has visible branding/label) or loose (homemade/restaurant)?
+3. DESCRIBE: Note physical dimensions using reference objects (plate ~24cm, fork ~18cm, fist ~150g).
+4. ESTIMATE GRAMS: Convert to grams. References: 1 egg ~50g, fist of rice ~150g, palm chicken ~120g, slice of bread ~30g, apple ~180g.
+5. CALCULATE: calories and macros based on the estimated grams.
+
+CRITICAL RULES:
+- Be CONSERVATIVE with confidence when image is unclear or food is partially hidden.
+- For packaged food: set "packaged": true, "needs_user_input": true. Don't guess weight — ask user.
+- Consider cooking method (fried adds ~50 cal from oil, grilled does not).
+- Account for hidden ingredients: dressings, oils, sauces, butter, sugar in drinks.
+- Hebrew food names for Israeli foods (שקשוקה, חומוס, פיתה, שווארמה, etc.)
+
+Respond ONLY with valid JSON:
+
+If food detected:
+{
+  "eating": true,
+  "foods": [{
+    "food": "English name",
+    "foodHe": "שם בעברית",
+    "estimated_grams": 150,
+    "calories": 250,
+    "protein": 12,
+    "carbs": 30,
+    "fat": 8,
+    "packaged": false,
+    "confidence": 0.85,
+    "needs_user_input": false,
+    "user_question_he": null
+  }],
+  "total_calories": 250,
+  "total_protein": 12,
+  "total_carbs": 30,
+  "total_fat": 8
+}
+
+If needs_user_input is true, provide Hebrew question:
+- "כמה גרם כתוב על האריזה?" (packaged)
+- "כמה כפות לקחת?" (unclear portion)
+- "זה לחם לבן או מקמח מלא?" (ambiguous type)
+
+If no food: { "eating": false }
+
+WEBCAM NOTE: Images may be grainy or poorly lit. Only analyze clearly visible food. Lower confidence for unclear images.`;
 
 const MIN_CALL_INTERVAL_MS = 2000;
 
@@ -161,6 +203,23 @@ function parseDetectionResponse(raw: string): DetectionResult {
     return { eating: false };
   }
 
+  // New format: foods array with totals
+  if (parsed.foods && Array.isArray(parsed.foods) && parsed.foods.length > 0) {
+    const mainFood = parsed.foods[0];
+    const allFoodNames = parsed.foods.map((f: { foodHe?: string }) => f.foodHe || '').join(' + ');
+    return {
+      eating: true,
+      food: parsed.foods.map((f: { food?: string }) => f.food || '').join(' + '),
+      foodHe: allFoodNames || 'מזון לא ידוע',
+      calories: clampNumber(parsed.total_calories ?? mainFood?.calories, 0, 5000),
+      protein: clampNumber(parsed.total_protein ?? mainFood?.protein, 0, 500),
+      carbs: clampNumber(parsed.total_carbs ?? mainFood?.carbs, 0, 500),
+      fat: clampNumber(parsed.total_fat ?? mainFood?.fat, 0, 500),
+      confidence: clampNumber(mainFood?.confidence, 0, 1),
+    };
+  }
+
+  // Fallback: old format
   return {
     eating: true,
     food: String(parsed.food ?? 'Unknown food'),

@@ -10,6 +10,8 @@ import HourlyChart from './HourlyChart';
 import FoodLog from './FoodLog';
 import type { FoodEntry, DailyLog, UserProfile, CoachMessage } from '../../types';
 
+type FacingMode = 'user' | 'environment';
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getTodayDate(): string {
@@ -68,7 +70,7 @@ const DEFAULT_PROFILE: UserProfile = {
 function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }) {
   return (
     <div
-      className="fixed top-20 left-4 z-50 p-4 rounded-2xl border max-w-sm animate-[slideIn_0.4s_ease]"
+      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm animate-toast-slide-in"
       style={{
         background: 'rgba(26,26,46,0.95)',
         backdropFilter: 'blur(12px)',
@@ -76,11 +78,11 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
       }}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="text-lg font-bold text-white mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="text-base sm:text-lg font-bold text-white mb-1 truncate">
             🍽️ {entry.foodHe}
           </div>
-          <div className="text-2xl font-bold" style={{ color: '#22D97F' }}>
+          <div className="text-xl sm:text-2xl font-bold" style={{ color: '#22D97F' }}>
             {entry.calories} <span className="text-sm text-gray-400">קק״ל</span>
           </div>
           <div className="flex gap-3 mt-2 text-xs text-gray-400">
@@ -92,7 +94,7 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
             ביטחון: {Math.round(entry.confidence * 100)}%
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-500 hover:text-white text-xl">×</button>
+        <button onClick={onClose} className="text-gray-500 hover:text-white text-xl min-w-[44px] min-h-[44px] flex items-center justify-center">×</button>
       </div>
     </div>
   );
@@ -190,6 +192,7 @@ export default function DashboardPage() {
   const [toast, setToast] = useState<FoodEntry | null>(null);
   const [showApiKey, setShowApiKey] = useState(!getApiKey());
   const [coachMsg, setCoachMsg] = useState<CoachMessage | null>(null);
+  const [facingMode, setFacingMode] = useState<FacingMode>('user');
 
   // Webcam
   const { webcamRef, status: webcamStatus, isReady, capture, error: webcamError } = useWebcam();
@@ -263,6 +266,70 @@ export default function DashboardPage() {
       {showApiKey && <ApiKeyModal onSave={handleApiKeySave} onClose={() => setShowApiKey(false)} />}
 
       <MainLayout
+        mobileTopCard={
+          /* Compact 16:9 webcam card for mobile — shown inline above dashboard */
+          <div
+            className="rounded-2xl overflow-hidden relative border cursor-pointer aspect-video"
+            style={{ background: '#0a0a0f', borderColor: `${statusColor}40` }}
+            onClick={toggleDetection}
+          >
+            {webcamStatus === 'active' || webcamStatus === 'requesting' ? (
+              <Webcam
+                ref={webcamRef}
+                audio={false}
+                screenshotFormat="image/jpeg"
+                videoConstraints={{ width: 640, height: 480, facingMode }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <span className="text-gray-500 text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
+              </div>
+            )}
+            {/* Camera flip button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+              }}
+              className="absolute top-2 left-2 w-10 h-10 rounded-full flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
+              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+              aria-label="החלף מצלמה"
+            >
+              <span className="text-lg">🔄</span>
+            </button>
+            {/* Status overlay */}
+            <div
+              className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
+              style={{ background: 'rgba(0,0,0,0.7)' }}
+            >
+              <span style={{ color: statusColor }}>{statusText}</span>
+              <span className="text-gray-500">
+                {isDetecting ? 'לחץ להשהיה' : 'לחץ להפעלה'}
+              </span>
+            </div>
+            {/* Coach message overlay on mobile */}
+            {coachMsg && (
+              <div
+                className="absolute top-2 right-2 max-w-[60%] px-3 py-1.5 rounded-xl text-xs text-gray-200 leading-snug"
+                style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+              >
+                <span style={{ color: '#22D97F' }}>🤖 גל: </span>
+                {coachMsg.text}
+              </div>
+            )}
+            {/* Scan line animation when detecting */}
+            {isDetecting && (
+              <div
+                className="absolute left-0 right-0 h-0.5 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(90deg, transparent, #22D97F, transparent)',
+                  animation: 'scanMove 3s ease-in-out infinite',
+                }}
+              />
+            )}
+          </div>
+        }
         sidebar={
           <div className="flex flex-col gap-4">
             {/* REAL Webcam */}
@@ -276,7 +343,7 @@ export default function DashboardPage() {
                   ref={webcamRef}
                   audio={false}
                   screenshotFormat="image/jpeg"
-                  videoConstraints={{ width: 640, height: 480, facingMode: 'user' }}
+                  videoConstraints={{ width: 640, height: 480, facingMode }}
                   style={{ width: '100%', height: 'auto', display: 'block' }}
                 />
               ) : (
@@ -284,6 +351,18 @@ export default function DashboardPage() {
                   <span className="text-gray-500 text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
                 </div>
               )}
+              {/* Camera flip button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+                }}
+                className="absolute top-2 left-2 w-10 h-10 rounded-full flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
+                style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+                aria-label="החלף מצלמה"
+              >
+                <span className="text-lg">🔄</span>
+              </button>
               {/* Status overlay */}
               <div
                 className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
@@ -346,7 +425,7 @@ export default function DashboardPage() {
           </div>
         }
       >
-        <div className="flex flex-col gap-4 mb-20 md:mb-0">
+        <div className="flex flex-col gap-3 md:gap-4">
           <DailySummary log={todayLog} profile={profile} />
           <HourlyChart data={hourlyData} />
           <FoodLog

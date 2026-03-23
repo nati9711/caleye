@@ -67,20 +67,22 @@ export default function HourlyChart({ data, className = '' }: HourlyChartProps) 
     return () => observer.disconnect();
   }, []);
 
-  const barWidth = 28;
-  const barGap = 8;
+  // Wider bars on mobile for easier touch interaction
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const barWidth = isMobile ? 36 : 28;
+  const barGap = isMobile ? 10 : 8;
   const chartHeight = 160;
   const totalWidth = data.length * (barWidth + barGap);
 
   return (
-    <div className={`glass-card p-lg ${className}`}>
+    <div className={`glass-card p-3 sm:p-lg animate-fade-in-up ${className}`}>
       {/* Title */}
       <h3 className="text-h3 text-text-primary mb-md">קלוריות לפי שעה</h3>
 
-      {/* Chart container — horizontal scroll on mobile */}
+      {/* Chart container — horizontal scroll with touch momentum on mobile */}
       <div
         ref={containerRef}
-        className="overflow-x-auto scrollbar-hide"
+        className="overflow-x-auto scrollbar-hide touch-scroll-x"
       >
         <div
           className="relative"
@@ -190,7 +192,7 @@ export default function HourlyChart({ data, className = '' }: HourlyChartProps) 
       </div>
 
       {/* Color legend */}
-      <div className="flex items-center justify-center gap-md mt-sm text-caption">
+      <div className="flex items-center justify-center gap-sm sm:gap-md mt-sm text-caption flex-wrap">
         <LegendDot color="#22c55e" label="קלה (0-300)" />
         <LegendDot color="#f59e0b" label="בינונית (301-600)" />
         <LegendDot color="#FB7185" label="כבדה (601+)" />

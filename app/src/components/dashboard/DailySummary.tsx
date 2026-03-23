@@ -45,21 +45,21 @@ export default function DailySummary({ log, profile, className = '' }: DailySumm
   };
 
   return (
-    <div className={`glass-card p-lg animate-fade-in-scale ${className}`}>
-      {/* Top row: Calories + Macro ring */}
-      <div className="flex items-center justify-between gap-lg flex-wrap">
-        {/* Calories block */}
-        <div className="flex flex-col items-start gap-xs">
+    <div className={`glass-card p-3 sm:p-lg animate-fade-in-up ${className}`}>
+      {/* Top row: Calories + Macro ring — stacks vertically on mobile */}
+      <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-md sm:gap-lg">
+        {/* Calories block — full width on mobile */}
+        <div className="flex flex-col items-center sm:items-start gap-xs w-full sm:w-auto">
           <AnimatedCounter
             value={log.totalCalories}
-            className="text-[32px] font-bold text-accent leading-none"
+            className="text-[28px] sm:text-[32px] font-bold text-accent leading-none"
           />
           <span className="text-text-secondary text-body-sm">
             קק״ל מתוך {profile.calorieGoal.toLocaleString('he-IL')}
           </span>
         </div>
 
-        {/* Macro ring */}
+        {/* Macro ring — full width centered on mobile */}
         <MacroRing
           protein={log.totalProtein}
           carbs={log.totalCarbs}
@@ -71,7 +71,7 @@ export default function DailySummary({ log, profile, className = '' }: DailySumm
       </div>
 
       {/* Progress bar toward daily goal */}
-      <div className="mt-lg">
+      <div className="mt-md sm:mt-lg">
         <ProgressBar value={goalPct} height={10} />
         <div className="flex items-center justify-between mt-xs">
           <span className="text-text-secondary text-body-sm">
