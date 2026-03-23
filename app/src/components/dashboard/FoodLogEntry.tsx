@@ -37,8 +37,9 @@ function getConfidenceBg(confidence: number): string {
 export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: FoodLogEntryProps) {
   const [expanded, setExpanded] = useState(false);
   const x = useMotionValue(0);
-  const deleteOpacity = useTransform(x, [-100, -40, 0], [1, 0.5, 0]);
-  const deleteBg = useTransform(x, [-100, 0], ['#ef4444', 'transparent']);
+  // RTL: swipe RIGHT to reveal delete button on the LEFT side
+  const deleteOpacity = useTransform(x, [0, 40, 100], [0, 0.5, 1]);
+  const deleteBg = useTransform(x, [0, 100], ['transparent', '#ef4444']);
 
   const time = new Date(entry.timestamp);
   const timeStr = time.toLocaleTimeString('he-IL', {
@@ -57,7 +58,7 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
       transition={{ duration: 0.3, delay: index * 0.05 }}
       className="relative overflow-hidden rounded-2xl"
     >
-      {/* Delete button behind (revealed on swipe) */}
+      {/* Delete button behind — LEFT side (RTL: visually on the right) */}
       <motion.div
         className="absolute inset-y-0 left-0 w-24 flex items-center justify-center rounded-2xl"
         style={{ backgroundColor: deleteBg, opacity: deleteOpacity }}
@@ -65,13 +66,13 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
         <span className="text-white text-xl">🗑️</span>
       </motion.div>
 
-      {/* Swipeable content */}
+      {/* Swipeable content — RTL: swipe RIGHT to reveal delete */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: -100, right: 0 }}
+        dragConstraints={{ left: 0, right: 100 }}
         dragElastic={0.1}
         onDragEnd={(_, info) => {
-          if (info.offset.x < -80) {
+          if (info.offset.x > 80) {
             onDelete?.(entry.id);
           }
         }}
