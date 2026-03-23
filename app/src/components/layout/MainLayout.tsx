@@ -1,4 +1,5 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -9,6 +10,16 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, sidebar, mobileTopCard }: MainLayoutProps) {
   const [mobileTab, setMobileTab] = useState<'dash' | 'camera' | 'workout' | 'profile'>('dash');
+  const prevTab = useRef(mobileTab);
+
+  // Determine slide direction based on tab order
+  const tabOrder = ['dash', 'camera', 'workout', 'profile'] as const;
+  const direction = tabOrder.indexOf(mobileTab) >= tabOrder.indexOf(prevTab.current) ? 1 : -1;
+
+  const handleTabChange = (tab: typeof mobileTab) => {
+    prevTab.current = mobileTab;
+    setMobileTab(tab);
+  };
 
   return (
     <div className="min-h-screen pt-14 sm:pt-16 pb-16 md:pb-0" style={{ background: '#0a0a0f' }}>
@@ -18,38 +29,46 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
         <main className="p-3 md:p-6 overflow-y-auto">
           {/* Mobile: show webcam card inline above dashboard */}
           {mobileTopCard && mobileTab === 'dash' && (
-            <div className="md:hidden mb-3 animate-fade-in-up">
+            <div className="md:hidden mb-3">
               {mobileTopCard}
             </div>
           )}
 
-          {/* Tab content */}
-          <div className={`transition-opacity duration-200 ${mobileTab === 'dash' ? 'opacity-100' : 'opacity-100'}`}>
-            {mobileTab === 'dash' && children}
-            {mobileTab === 'camera' && (
-              <div className="md:hidden animate-fade-in-up">
-                {sidebar}
-              </div>
-            )}
-            {mobileTab === 'workout' && (
-              <div className="md:hidden animate-fade-in-up">
-                <div className="glass-card p-4 text-center">
-                  <span className="text-4xl block mb-3">🏋️</span>
-                  <p className="text-text-primary font-semibold">אימונים</p>
-                  <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+          {/* Tab content with slide animation */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={mobileTab}
+              initial={{ opacity: 0, x: direction * 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -40 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
+              {mobileTab === 'dash' && children}
+              {mobileTab === 'camera' && (
+                <div className="md:hidden">
+                  {sidebar}
                 </div>
-              </div>
-            )}
-            {mobileTab === 'profile' && (
-              <div className="md:hidden animate-fade-in-up">
-                <div className="glass-card p-4 text-center">
-                  <span className="text-4xl block mb-3">⚙️</span>
-                  <p className="text-text-primary font-semibold">הגדרות</p>
-                  <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+              )}
+              {mobileTab === 'workout' && (
+                <div className="md:hidden">
+                  <div className="glass-card p-4 text-center">
+                    <span className="text-4xl block mb-3">🏋️</span>
+                    <p className="text-text-primary font-semibold">אימונים</p>
+                    <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+              {mobileTab === 'profile' && (
+                <div className="md:hidden">
+                  <div className="glass-card p-4 text-center">
+                    <span className="text-4xl block mb-3">⚙️</span>
+                    <p className="text-text-primary font-semibold">הגדרות</p>
+                    <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {/* Sidebar — hidden on mobile, sticky on desktop */}
@@ -65,10 +84,10 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
         className="md:hidden fixed bottom-0 inset-x-0 h-14 flex items-center justify-around z-50"
         style={{ background: 'rgba(17,24,39,0.95)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <TabButton icon="📊" label="דשבורד" active={mobileTab === 'dash'} onClick={() => setMobileTab('dash')} />
-        <TabButton icon="📷" label="מצלמה" active={mobileTab === 'camera'} onClick={() => setMobileTab('camera')} />
-        <TabButton icon="🏋️" label="אימון" active={mobileTab === 'workout'} onClick={() => setMobileTab('workout')} />
-        <TabButton icon="⚙️" label="הגדרות" active={mobileTab === 'profile'} onClick={() => setMobileTab('profile')} />
+        <TabButton icon="📊" label="דשבורד" active={mobileTab === 'dash'} onClick={() => handleTabChange('dash')} />
+        <TabButton icon="📷" label="מצלמה" active={mobileTab === 'camera'} onClick={() => handleTabChange('camera')} />
+        <TabButton icon="🏋️" label="אימון" active={mobileTab === 'workout'} onClick={() => handleTabChange('workout')} />
+        <TabButton icon="⚙️" label="הגדרות" active={mobileTab === 'profile'} onClick={() => handleTabChange('profile')} />
       </nav>
     </div>
   );

@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import type { DailyLog, UserProfile } from '../../types';
 import { LEVELS } from '../../store/mockData';
 import AnimatedCounter from '../shared/AnimatedCounter';
@@ -45,7 +46,12 @@ export default function DailySummary({ log, profile, className = '' }: DailySumm
   };
 
   return (
-    <div className={`glass-card p-3 sm:p-lg animate-fade-in-up ${className}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`glass-card p-3 sm:p-lg ${className}`}
+    >
       {/* Top row: Calories + Macro ring — stacks vertically on mobile */}
       <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-md sm:gap-lg">
         {/* Calories block — full width on mobile */}
@@ -121,6 +127,6 @@ export default function DailySummary({ log, profile, className = '' }: DailySumm
         </div>
         <ProgressBar value={levelPct} height={6} />
       </div>
-    </div>
+    </motion.div>
   );
 }

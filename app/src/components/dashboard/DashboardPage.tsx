@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Webcam from 'react-webcam';
 import { useWebcam } from '../../hooks/useWebcam';
 import { useFoodDetection } from '../../hooks/useFoodDetection';
@@ -69,8 +70,12 @@ const DEFAULT_PROFILE: UserProfile = {
 
 function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }) {
   return (
-    <div
-      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm animate-toast-slide-in"
+    <motion.div
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -30 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm"
       style={{
         background: 'rgba(26,26,46,0.95)',
         backdropFilter: 'blur(12px)',
@@ -96,7 +101,7 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
         </div>
         <button onClick={onClose} className="text-gray-500 hover:text-white text-xl min-w-[44px] min-h-[44px] flex items-center justify-center">×</button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -242,6 +247,22 @@ export default function DashboardPage() {
     isWebcamReady: isReady,
   });
 
+  // Delete entry handler
+  const onDeleteEntry = useCallback((entryId: string) => {
+    setTodayLog((prev) => {
+      const entry = prev.entries.find((e) => e.id === entryId);
+      if (!entry) return prev;
+      return {
+        ...prev,
+        entries: prev.entries.filter((e) => e.id !== entryId),
+        totalCalories: prev.totalCalories - entry.calories,
+        totalProtein: prev.totalProtein - entry.protein,
+        totalCarbs: prev.totalCarbs - entry.carbs,
+        totalFat: prev.totalFat - entry.fat,
+      };
+    });
+  }, []);
+
   // Hourly data
   const hourlyData = useMemo(() => buildHourlyData(todayLog.entries), [todayLog.entries]);
 
@@ -260,7 +281,9 @@ export default function DashboardPage() {
       <Header profile={profile} onSettingsClick={() => setShowApiKey(true)} />
 
       {/* Toast */}
-      {toast && <FoodToast entry={toast} onClose={() => setToast(null)} />}
+      <AnimatePresence>
+        {toast && <FoodToast entry={toast} onClose={() => setToast(null)} />}
+      </AnimatePresence>
 
       {/* API Key Modal */}
       {showApiKey && <ApiKeyModal onSave={handleApiKeySave} onClose={() => setShowApiKey(false)} />}
@@ -431,16 +454,13 @@ export default function DashboardPage() {
           <FoodLog
             entries={todayLog.entries}
             onEditEntry={(entry) => console.log('Edit:', entry.id)}
+            onDeleteEntry={onDeleteEntry}
           />
         </div>
       </MainLayout>
 
       {/* CSS for animations */}
       <style>{`
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
         @keyframes scanMove {
           0%, 100% { top: 10%; opacity: 0.5; }
           50% { top: 85%; opacity: 1; }

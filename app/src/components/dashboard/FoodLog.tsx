@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'motion/react';
 import type { FoodEntry } from '../../types';
 import FoodLogEntry from './FoodLogEntry';
 
@@ -6,6 +7,8 @@ interface FoodLogProps {
   entries: FoodEntry[];
   /** Callback when edit button is clicked on an entry */
   onEditEntry?: (entry: FoodEntry) => void;
+  /** Callback when an entry is swiped to delete */
+  onDeleteEntry?: (entryId: string) => void;
   /** Additional CSS class names */
   className?: string;
 }
@@ -16,7 +19,7 @@ interface FoodLogProps {
  * Each entry is a FoodLogEntry component with staggered slide-in animation.
  * Max height with internal scroll on desktop.
  */
-export default function FoodLog({ entries, onEditEntry, className = '' }: FoodLogProps) {
+export default function FoodLog({ entries, onEditEntry, onDeleteEntry, className = '' }: FoodLogProps) {
   // Sort by timestamp descending (newest first)
   const sortedEntries = [...entries].sort((a, b) => b.timestamp - a.timestamp);
 
@@ -30,14 +33,17 @@ export default function FoodLog({ entries, onEditEntry, className = '' }: FoodLo
         <EmptyState />
       ) : (
         <div className="space-y-2 sm:space-y-sm max-h-[500px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
-          {sortedEntries.map((entry, i) => (
-            <FoodLogEntry
-              key={entry.id}
-              entry={entry}
-              index={i}
-              onEdit={onEditEntry}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {sortedEntries.map((entry, i) => (
+              <FoodLogEntry
+                key={entry.id}
+                entry={entry}
+                index={i}
+                onEdit={onEditEntry}
+                onDelete={onDeleteEntry}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

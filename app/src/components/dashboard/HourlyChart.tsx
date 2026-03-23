@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 
 interface HourlyData {
   hour: number;
@@ -75,7 +76,12 @@ export default function HourlyChart({ data, className = '' }: HourlyChartProps) 
   const totalWidth = data.length * (barWidth + barGap);
 
   return (
-    <div className={`glass-card p-3 sm:p-lg animate-fade-in-up ${className}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.15 }}
+      className={`glass-card p-3 sm:p-lg ${className}`}
+    >
       {/* Title */}
       <h3 className="text-h3 text-text-primary mb-md">קלוריות לפי שעה</h3>
 
@@ -119,20 +125,25 @@ export default function HourlyChart({ data, className = '' }: HourlyChartProps) 
                   style={{ width: `${barWidth}px` }}
                 >
                   {/* Bar */}
-                  <div
-                    className={`relative rounded-t-[4px] cursor-pointer transition-all
+                  <motion.div
+                    className={`relative rounded-t-[4px] cursor-pointer
                       ${isCurrent && item.calories > 0 ? 'animate-pulse-glow' : ''}
                     `}
+                    initial={{ height: 0 }}
+                    animate={{ height: visible ? barHeight : 0 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: visible ? i * 0.05 : 0,
+                      ease: [0.34, 1.56, 0.64, 1],
+                    }}
                     style={{
                       width: `${barWidth}px`,
-                      height: visible ? `${barHeight}px` : '0px',
                       backgroundColor: isFuture ? 'transparent' : color,
                       border: isFuture
                         ? '1px dashed rgba(255, 255, 255, 0.15)'
                         : item.calories > 0
                           ? 'none'
                           : '1px dashed rgba(255, 255, 255, 0.06)',
-                      transition: `height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 80}ms`,
                       transformOrigin: 'bottom',
                       minHeight: isFuture ? '20px' : undefined,
                     }}
@@ -197,7 +208,7 @@ export default function HourlyChart({ data, className = '' }: HourlyChartProps) 
         <LegendDot color="#f59e0b" label="בינונית (301-600)" />
         <LegendDot color="#FB7185" label="כבדה (601+)" />
       </div>
-    </div>
+    </motion.div>
   );
 }
 

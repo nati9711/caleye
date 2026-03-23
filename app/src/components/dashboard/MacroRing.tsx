@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 
 interface MacroRingProps {
   /** Protein consumed in grams */
@@ -86,7 +87,12 @@ export default function MacroRing({
   const displayCenter = centerLabel ?? `${pctOfTarget}%`;
 
   return (
-    <div className={`flex flex-col items-center gap-sm ${className}`}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+      className={`flex flex-col items-center gap-sm ${className}`}
+    >
       {/* SVG Ring */}
       <div className="relative" style={{ width: size, height: size }}>
         <svg
@@ -189,7 +195,7 @@ export default function MacroRing({
           grams={`${fat}g`}
         />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
