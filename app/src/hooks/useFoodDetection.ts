@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { analyzeFrame } from '../lib/gemini';
+import { lookupNutrition } from '../lib/nutrition';
 import type { DetectionResult, FoodEntry } from '../types';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -167,9 +168,23 @@ export function useFoodDetection(
         ...recentDetectionsRef.current,
       ].slice(0, MAX_RECENT_DETECTIONS);
 
-      // Create the food entry with the captured frame as thumbnail
+      // Look up REAL nutrition data from USDA
+      const estimatedGrams = result.calories ? Math.round((result.calories / 200) * 100) : 100; // rough estimate if no grams
+      const usdaData = await lookupNutrition(result.food ?? '', estimatedGrams);
+
+      // Create the food entry — prefer USDA data over AI estimate
       const thumbnailDataUri = `data:image/jpeg;base64,${frame}`;
-      const entry = createFoodEntry(result, thumbnailDataUri);
+      const entry = usdaData
+        ? {
+            ...createFoodEntry(result, thumbnailDataUri),
+            calories: usdaData.calories,
+            protein: usdaData.protein,
+            carbs: usdaData.carbs,
+            fat: usdaData.fat,
+          }
+        : createFoodEntry(result, thumbnailDataUri);
+
+      console.log(`[CalEye] 📊 Source: ${usdaData ? 'USDA ✅' : 'AI estimate ⚠️'}`);
 
       // Notify callbacks
       cbs.onFoodDetected(entry);
