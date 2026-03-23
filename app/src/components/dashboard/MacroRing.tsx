@@ -61,7 +61,7 @@ export default function MacroRing({
   const fatPct = total > 0 ? fat / total : 0;
 
   // SVG ring parameters
-  const strokeWidth = 14;
+  const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
@@ -77,11 +77,6 @@ export default function MacroRing({
   const carbsOffset = proteinArc;
   const fatOffset = proteinArc + carbsArc;
 
-  // Percentage display values
-  const proteinDisplay = total > 0 ? Math.round((protein / total) * 100) : 0;
-  const carbsDisplay = total > 0 ? Math.round((carbs / total) * 100) : 0;
-  const fatDisplay = total > 0 ? Math.round((fat / total) * 100) : 0;
-
   // Default center label: percentage of target
   const pctOfTarget = totalTarget > 0 ? Math.round((total / totalTarget) * 100) : 0;
   const displayCenter = centerLabel ?? `${pctOfTarget}%`;
@@ -91,7 +86,7 @@ export default function MacroRing({
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className={`flex flex-col items-center gap-sm ${className}`}
+      className={`flex flex-col items-center gap-3 ${className}`}
     >
       {/* SVG Ring */}
       <div className="relative" style={{ width: size, height: size }}>
@@ -101,13 +96,29 @@ export default function MacroRing({
           viewBox={`0 0 ${size} ${size}`}
           className="transform -rotate-90"
         >
+          {/* Gradient definitions */}
+          <defs>
+            <linearGradient id="proteinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#60a5fa" />
+              <stop offset="100%" stopColor="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="carbsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4ade80" />
+              <stop offset="100%" stopColor="#22c55e" />
+            </linearGradient>
+            <linearGradient id="fatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#f59e0b" />
+            </linearGradient>
+          </defs>
+
           {/* Background track */}
           <circle
             cx={center}
             cy={center}
             r={radius}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.06)"
+            stroke="rgba(255, 255, 255, 0.05)"
             strokeWidth={strokeWidth}
           />
 
@@ -118,7 +129,7 @@ export default function MacroRing({
               cy={center}
               r={radius}
               fill="none"
-              stroke={MACRO_COLORS.fat}
+              stroke="url(#fatGrad)"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeDasharray={`${fatArc} ${circumference - fatArc}`}
@@ -136,7 +147,7 @@ export default function MacroRing({
               cy={center}
               r={radius}
               fill="none"
-              stroke={MACRO_COLORS.carbs}
+              stroke="url(#carbsGrad)"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeDasharray={`${carbsArc} ${circumference - carbsArc}`}
@@ -154,7 +165,7 @@ export default function MacroRing({
               cy={center}
               r={radius}
               fill="none"
-              stroke={MACRO_COLORS.protein}
+              stroke="url(#proteinGrad)"
               strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeDasharray={`${proteinArc} ${circumference - proteinArc}`}
@@ -168,31 +179,32 @@ export default function MacroRing({
 
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-text-primary font-bold text-lg leading-none">
+          <span className="text-text-primary font-bold text-xl leading-none font-sora">
             {displayCenter}
           </span>
+          <span className="text-text-tertiary text-[9px] mt-0.5">מאקרו</span>
         </div>
       </div>
 
-      {/* Legend — wraps on very small screens */}
-      <div className="flex items-center gap-sm sm:gap-md text-caption sm:text-body-sm flex-wrap justify-center">
+      {/* Legend — compact colored circles + text */}
+      <div className="flex items-center gap-3 sm:gap-4 text-caption sm:text-body-sm flex-wrap justify-center">
         <LegendItem
           color={MACRO_COLORS.protein}
           label={MACRO_LABELS.protein}
-          value={`${proteinDisplay}%`}
           grams={`${protein}g`}
+          target={`${targets.protein}g`}
         />
         <LegendItem
           color={MACRO_COLORS.carbs}
           label={MACRO_LABELS.carbs}
-          value={`${carbsDisplay}%`}
           grams={`${carbs}g`}
+          target={`${targets.carbs}g`}
         />
         <LegendItem
           color={MACRO_COLORS.fat}
           label={MACRO_LABELS.fat}
-          value={`${fatDisplay}%`}
           grams={`${fat}g`}
+          target={`${targets.fat}g`}
         />
       </div>
     </motion.div>
@@ -204,20 +216,20 @@ export default function MacroRing({
 interface LegendItemProps {
   color: string;
   label: string;
-  value: string;
   grams: string;
+  target: string;
 }
 
-function LegendItem({ color, label, value, grams }: LegendItemProps) {
+function LegendItem({ color, label, grams, target }: LegendItemProps) {
   return (
-    <div className="flex items-center gap-xs">
+    <div className="flex items-center gap-1.5">
       <span
         className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}44` }}
       />
       <span className="text-text-secondary">{label}</span>
-      <span className="text-text-primary font-semibold">{value}</span>
-      <span className="text-text-tertiary">({grams})</span>
+      <span className="text-text-primary font-semibold tabular-nums">{grams}</span>
+      <span className="text-text-tertiary tabular-nums">/{target}</span>
     </div>
   );
 }

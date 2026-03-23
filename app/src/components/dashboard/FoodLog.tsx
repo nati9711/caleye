@@ -25,14 +25,29 @@ export default function FoodLog({ entries, onEditEntry, onDeleteEntry, className
 
   return (
     <div className={`${className}`}>
-      {/* Section title */}
-      <h3 className="text-h3 text-text-primary mb-md">יומן אוכל</h3>
+      {/* Section title with icon and count badge */}
+      <div className="section-header">
+        <span className="text-lg">📋</span>
+        <h3 className="text-h3 text-text-primary">לוג ארוחות</h3>
+        {sortedEntries.length > 0 && (
+          <span
+            className="text-[10px] font-semibold tabular-nums px-2 py-0.5 rounded-full"
+            style={{
+              background: 'rgba(0, 212, 170, 0.1)',
+              color: '#00d4aa',
+              border: '1px solid rgba(0, 212, 170, 0.15)',
+            }}
+          >
+            {sortedEntries.length}
+          </span>
+        )}
+      </div>
 
       {/* Entry list or empty state */}
       {sortedEntries.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-2 sm:space-y-sm max-h-[500px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
+        <div className="space-y-3 sm:space-y-3 max-h-[500px] md:max-h-[500px] overflow-y-auto scrollbar-hide pr-1">
           <AnimatePresence initial={false}>
             {sortedEntries.map((entry, i) => (
               <FoodLogEntry
@@ -54,32 +69,32 @@ export default function FoodLog({ entries, onEditEntry, onDeleteEntry, className
 
 function EmptyState() {
   return (
-    <div className="glass-card p-lg sm:p-xl flex flex-col items-center justify-center text-center animate-fade-in-up py-10 sm:py-14">
-      <div className="text-5xl sm:text-6xl mb-md relative">
-        🍽️
+    <div className="glass-card-premium p-6 sm:p-8 flex flex-col items-center justify-center text-center animate-fade-in-up py-12 sm:py-16">
+      <div className="text-5xl sm:text-6xl mb-5 relative">
+        <span className="float-emoji inline-block">🍽️</span>
         <span
-          className="absolute -top-2 -left-3 text-2xl animate-bounce"
-          style={{ animationDelay: '0s', animationDuration: '2s' }}
+          className="absolute -top-3 -left-4 text-2xl float-emoji inline-block"
+          style={{ animationDelay: '0s', animationDuration: '2.5s' }}
         >
           🥗
         </span>
         <span
-          className="absolute -top-1 -right-4 text-xl animate-bounce"
-          style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}
+          className="absolute -top-2 -right-5 text-xl float-emoji inline-block"
+          style={{ animationDelay: '0.7s', animationDuration: '3s' }}
         >
           🍎
         </span>
         <span
-          className="absolute -bottom-2 -left-5 text-lg animate-bounce"
-          style={{ animationDelay: '1s', animationDuration: '3s' }}
+          className="absolute -bottom-3 -left-6 text-lg float-emoji inline-block"
+          style={{ animationDelay: '1.4s', animationDuration: '3.5s' }}
         >
           🥑
         </span>
       </div>
-      <p className="text-text-primary text-lg sm:text-xl font-bold mb-xs">
+      <p className="text-text-primary text-lg sm:text-xl font-bold mb-1.5">
         עדיין לא אכלת היום
       </p>
-      <p className="text-text-secondary text-body-sm max-w-[250px]">
+      <p className="text-text-tertiary text-sm max-w-[260px] leading-relaxed">
         הכל מוכן — תפתח אוכל ליד המצלמה
       </p>
     </div>

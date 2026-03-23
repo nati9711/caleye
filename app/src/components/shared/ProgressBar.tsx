@@ -7,6 +7,8 @@ interface ProgressBarProps {
   height?: number;
   /** Whether to display the percentage label inside the bar */
   showLabel?: boolean;
+  /** Whether to show a glow effect on the fill */
+  glow?: boolean;
   /** Additional CSS class names for the outer container */
   className?: string;
 }
@@ -19,6 +21,7 @@ export default function ProgressBar({
   value,
   height = 12,
   showLabel = false,
+  glow = false,
   className = '',
 }: ProgressBarProps) {
   const [mounted, setMounted] = useState(false);
@@ -43,6 +46,7 @@ export default function ProgressBar({
         className="absolute inset-y-0 start-0 rounded-full gradient-fill transition-all duration-1000 ease-out"
         style={{
           width: mounted ? `${clampedValue}%` : '0%',
+          boxShadow: glow ? '0 0 12px rgba(0, 212, 170, 0.3)' : undefined,
         }}
       />
 

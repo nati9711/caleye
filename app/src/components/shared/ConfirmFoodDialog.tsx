@@ -62,52 +62,42 @@ export default function ConfirmFoodDialog({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-md mx-auto rounded-t-2xl md:rounded-2xl overflow-hidden"
+          className="relative w-full max-w-md mx-auto rounded-t-3xl md:rounded-2xl overflow-hidden"
           style={{
-            background: '#1a1a2e',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(26, 26, 46, 0.97)',
+            border: '1px solid rgba(255,255,255,0.08)',
             borderBottom: 'none',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(24px)',
           }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Drag handle (mobile) */}
           <div className="md:hidden flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-white/20" />
+            <div className="w-10 h-1 rounded-full bg-white/15" />
           </div>
 
-          <div className="p-5">
+          <div className="p-5 sm:p-6">
             {/* Title */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🤔</span>
-              <h2 className="text-lg font-bold text-white">לא בטוח לגמרי...</h2>
-            </div>
-
-            {/* Detected food info */}
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-text-secondary text-sm">זיהיתי:</span>
-              <span className="text-white font-semibold text-base">{entry.foodHe}</span>
-            </div>
-
-            {/* Confidence indicator */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-text-secondary text-sm">ביטחון:</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${confidencePct}%`, backgroundColor: confidenceColor }}
-                  />
-                </div>
-                <span className="font-bold text-sm" style={{ color: confidenceColor }}>
-                  {confidencePct}%
-                </span>
-                <span className="text-xs text-text-tertiary">({getConfidenceLabel(entry.confidence)})</span>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.15)' }}
+              >
+                🤔
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">לא בטוח לגמרי...</h2>
+                <p className="text-xs text-text-tertiary">עזור לי לאשר את הזיהוי</p>
               </div>
             </div>
 
-            {/* Thumbnail */}
+            {/* Thumbnail — large and prominent */}
             {entry.thumbnail && (
-              <div className="w-full rounded-xl overflow-hidden mb-4 border border-white/10">
+              <div
+                className="w-full rounded-2xl overflow-hidden mb-4"
+                style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              >
                 <img
                   src={entry.thumbnail}
                   alt={entry.foodHe}
@@ -116,44 +106,86 @@ export default function ConfirmFoodDialog({
               </div>
             )}
 
+            {/* Detected food info */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-text-tertiary text-sm">זיהיתי:</span>
+                <span className="text-white font-semibold text-base">{entry.foodHe}</span>
+              </div>
+            </div>
+
+            {/* Confidence indicator — visual bar */}
+            <div
+              className="flex items-center gap-3 mb-4 p-3 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <span className="text-text-tertiary text-xs">ביטחון:</span>
+              <div className="flex-1 flex items-center gap-2">
+                <div className="flex-1 h-2.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${confidencePct}%`, backgroundColor: confidenceColor, boxShadow: `0 0 8px ${confidenceColor}44` }}
+                  />
+                </div>
+                <span className="font-bold text-sm tabular-nums" style={{ color: confidenceColor }}>
+                  {confidencePct}%
+                </span>
+              </div>
+              <span className="text-[10px] text-text-tertiary">({getConfidenceLabel(entry.confidence)})</span>
+            </div>
+
             {/* AI question if present */}
             {userQuestion && (
               <div
-                className="rounded-xl p-3 mb-4 text-sm"
-                style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}
+                className="rounded-xl p-3.5 mb-4 text-sm"
+                style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}
               >
                 <span className="text-amber-400 font-medium">🤖 שאלה: </span>
-                <span className="text-gray-200">{userQuestion}</span>
+                <span className="text-text-secondary">{userQuestion}</span>
               </div>
             )}
 
             {/* Grams editor */}
             <div className="mb-5">
               <div className="flex items-center gap-3">
-                <span className="text-text-secondary text-sm">כמות משוערת:</span>
+                <span className="text-text-tertiary text-sm">כמות משוערת:</span>
                 {isEditing ? (
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setGrams(Math.max(1, grams - 10))}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-text-secondary hover:text-white transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                      -
+                    </button>
                     <input
                       type="number"
                       value={grams}
                       onChange={(e) => setGrams(Math.max(1, Number(e.target.value)))}
-                      className="w-20 px-3 py-1.5 rounded-lg text-white text-sm font-mono text-center"
-                      style={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.15)' }}
+                      className="w-20 px-3 py-2 rounded-xl text-white text-sm font-mono text-center focus:ring-1 focus:ring-accent/30 focus:outline-none"
+                      style={{ background: 'rgba(10,14,23,0.8)', border: '1px solid rgba(255,255,255,0.1)' }}
                       dir="ltr"
                       autoFocus
                       min={1}
                       max={5000}
                     />
-                    <span className="text-text-secondary text-sm">גרם</span>
+                    <button
+                      onClick={() => setGrams(Math.min(5000, grams + 10))}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-text-secondary hover:text-white transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+                    >
+                      +
+                    </button>
+                    <span className="text-text-tertiary text-sm">גרם</span>
                   </div>
                 ) : (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-white hover:bg-white/10 transition-colors"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white hover:bg-white/[0.06] transition-colors"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    <span>{entry.calories > 0 ? `~${Math.round((entry.calories / 2.5))}` : '100'}</span>
-                    <span className="text-text-secondary">גרם</span>
+                    <span className="tabular-nums">{entry.calories > 0 ? `~${Math.round((entry.calories / 2.5))}` : '100'}</span>
+                    <span className="text-text-tertiary">גרם</span>
                     <span className="text-text-tertiary text-xs mr-1">✏️</span>
                   </button>
                 )}
@@ -161,27 +193,31 @@ export default function ConfirmFoodDialog({
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => onConfirm(entry)}
-                className="flex-1 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
-                style={{ background: '#22D97F', color: '#0a0e17' }}
+                className="flex-1 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #22D97F, #06B6D4)',
+                  color: '#0a0e17',
+                  boxShadow: '0 4px 16px rgba(34,217,127,0.2)',
+                }}
               >
-                ✅ נכון
+                נכון
               </button>
               <button
                 onClick={() => onEdit(entry, grams)}
-                className="flex-1 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
-                style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b' }}
+                className="flex-1 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+                style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.15)' }}
               >
-                ✏️ תקן
+                תקן
               </button>
               <button
                 onClick={onReject}
-                className="px-4 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
-                style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+                className="px-5 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-95"
+                style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.15)' }}
               >
-                ❌
+                ✕
               </button>
             </div>
           </div>

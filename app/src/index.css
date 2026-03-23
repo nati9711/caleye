@@ -6,7 +6,7 @@
   html {
     direction: rtl;
     font-family: 'Heebo', sans-serif;
-    background-color: #0a0a0f;
+    background-color: #0A0E17;
     color: #f1f5f9;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -38,7 +38,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #0a0a0f;
+    background: #0A0E17;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -66,21 +66,33 @@
   /* Glassmorphism card */
   .glass-card {
     background: rgba(26, 26, 46, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
   /* Elevated glass card */
   .glass-card-elevated {
     background: rgba(26, 26, 46, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Premium glass card — stronger blur + richer border */
+  .glass-card-premium {
+    background: rgba(26, 26, 46, 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   /* Primary button */
@@ -127,6 +139,23 @@
   .streak-fire {
     @apply text-accent-warm drop-shadow-lg;
     text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  }
+
+  /* Section header */
+  .section-header {
+    @apply flex items-center gap-sm text-h3 text-text-primary mb-md;
+  }
+
+  /* Pill badge */
+  .pill-badge {
+    @apply inline-flex items-center gap-xs px-2.5 py-1 rounded-full text-caption font-medium;
+  }
+
+  /* Macro pill */
+  .macro-pill {
+    @apply inline-flex items-center gap-[3px] px-2 py-0.5 rounded-full text-caption font-medium;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   /* Macro ring segment colors */
@@ -214,10 +243,53 @@
 
   /* Glass header */
   .glass-header {
-    background: rgba(10, 10, 15, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(10, 10, 15, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glass bottom bar */
+  .glass-bottom-bar {
+    background: rgba(10, 14, 23, 0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Gradient text green→cyan */
+  .gradient-text-glow {
+    background: linear-gradient(135deg, #22D97F, #06B6D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px rgba(34, 217, 127, 0.3));
+  }
+
+  /* Warm gradient text */
+  .gradient-text-warm {
+    background: linear-gradient(135deg, #f59e0b, #FB7185);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow ring for progress bars */
+  .progress-glow {
+    box-shadow: 0 0 12px rgba(0, 212, 170, 0.25);
+  }
+
+  /* Live indicator */
+  .live-dot {
+    @apply w-2 h-2 rounded-full bg-red-500;
+    animation: live-blink 1.5s ease-in-out infinite;
+  }
+
+  /* Floating emoji animation */
+  .float-emoji {
+    animation: float-bob 3s ease-in-out infinite;
   }
 
   /* ── Smooth mobile transitions ── */
@@ -332,6 +404,16 @@
   }
 }
 
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 /* ── Mobile-specific overrides ── */
 
 @media (max-width: 639px) {
@@ -342,7 +424,11 @@
 
   /* Ensure all cards have compact padding on mobile */
   .glass-card {
-    border-radius: 12px;
+    border-radius: 16px;
+  }
+
+  .glass-card-premium {
+    border-radius: 20px;
   }
 
   /* Reduce max-width constraints that cause overflow */

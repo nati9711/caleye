@@ -22,7 +22,7 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
   };
 
   return (
-    <div className="min-h-screen pt-14 sm:pt-16 pb-16 md:pb-0" style={{ background: '#0a0a0f' }}>
+    <div className="min-h-screen pt-14 sm:pt-16 pb-16 md:pb-0" style={{ background: '#0A0E17' }}>
       {/* Desktop: grid with main + sidebar */}
       <div className="md:grid md:grid-cols-[1fr_320px] max-w-[1440px] mx-auto">
         {/* Main scrollable area */}
@@ -41,7 +41,7 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
               initial={{ opacity: 0, x: direction * 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction * -40 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
             >
               {mobileTab === 'dash' && children}
               {mobileTab === 'camera' && (
@@ -51,19 +51,19 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
               )}
               {mobileTab === 'workout' && (
                 <div className="md:hidden">
-                  <div className="glass-card p-4 text-center">
+                  <div className="glass-card-premium p-6 text-center">
                     <span className="text-4xl block mb-3">🏋️</span>
                     <p className="text-text-primary font-semibold">אימונים</p>
-                    <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+                    <p className="text-text-tertiary text-sm mt-1">בקרוב...</p>
                   </div>
                 </div>
               )}
               {mobileTab === 'profile' && (
                 <div className="md:hidden">
-                  <div className="glass-card p-4 text-center">
+                  <div className="glass-card-premium p-6 text-center">
                     <span className="text-4xl block mb-3">⚙️</span>
                     <p className="text-text-primary font-semibold">הגדרות</p>
-                    <p className="text-text-secondary text-body-sm mt-1">בקרוב...</p>
+                    <p className="text-text-tertiary text-sm mt-1">בקרוב...</p>
                   </div>
                 </div>
               )}
@@ -79,11 +79,8 @@ export default function MainLayout({ children, sidebar, mobileTopCard }: MainLay
         )}
       </div>
 
-      {/* Mobile bottom tab bar */}
-      <nav
-        className="md:hidden fixed bottom-0 inset-x-0 h-14 flex items-center justify-around z-50"
-        style={{ background: 'rgba(17,24,39,0.95)', backdropFilter: 'blur(12px)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
+      {/* Mobile bottom tab bar — glassmorphism */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 flex items-center justify-around z-50 glass-bottom-bar safe-area-pb">
         <TabButton icon="📊" label="דשבורד" active={mobileTab === 'dash'} onClick={() => handleTabChange('dash')} />
         <TabButton icon="📷" label="מצלמה" active={mobileTab === 'camera'} onClick={() => handleTabChange('camera')} />
         <TabButton icon="🏋️" label="אימון" active={mobileTab === 'workout'} onClick={() => handleTabChange('workout')} />
@@ -104,11 +101,20 @@ function TabButton({ icon, label, active = false, onClick }: TabButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-[2px] min-w-[44px] min-h-[44px] px-3 py-1 rounded-lg transition-all duration-200
-        ${active ? 'text-[#22D97F]' : 'text-gray-500 hover:text-gray-300'}`}
+      className={`relative flex flex-col items-center justify-center gap-1 min-w-[48px] min-h-[48px] px-3 py-1.5 rounded-xl transition-all duration-200
+        ${active ? 'text-[#22D97F]' : 'text-text-tertiary hover:text-text-secondary'}`}
     >
       <span className="text-lg leading-none">{icon}</span>
       <span className="text-[10px] font-medium leading-none">{label}</span>
+      {/* Active indicator — green dot */}
+      {active && (
+        <motion.div
+          layoutId="tab-indicator"
+          className="absolute -bottom-0.5 w-1 h-1 rounded-full"
+          style={{ backgroundColor: '#22D97F', boxShadow: '0 0 6px rgba(34,217,127,0.5)' }}
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        />
+      )}
     </button>
   );
 }

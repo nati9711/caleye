@@ -42,15 +42,15 @@ function buildHourlyData(entries: FoodEntry[]) {
 function getErrorMessage(error: string): string {
   switch (error) {
     case 'NO_API_KEY':
-      return '🔑 לא הוזן מפתח API — לחץ כאן לעדכון';
+      return 'לא הוזן מפתח API — לחץ כאן לעדכון';
     case 'INVALID_API_KEY':
-      return '🔑 מפתח API לא תקין — לחץ לעדכון';
+      return 'מפתח API לא תקין — לחץ לעדכון';
     case 'RATE_LIMITED':
-      return '⏳ חריגה ממכסת API — ינסה שוב בעוד 30 שניות';
+      return 'חריגה ממכסת API — ינסה שוב בעוד 30 שניות';
     case 'NETWORK_ERROR':
-      return '⚠️ שגיאה בזיהוי — בדוק את חיבור האינטרנט';
+      return 'שגיאה בזיהוי — בדוק את חיבור האינטרנט';
     default:
-      return `⚠️ שגיאה: ${error}`;
+      return `שגיאה: ${error}`;
   }
 }
 
@@ -82,7 +82,7 @@ const DEFAULT_PROFILE: UserProfile = {
   uniqueFoodsDetected: [],
 };
 
-// ── Toast Component (inline, simple) ─────────────────────────────────────────
+// ── Toast Component ─────────────────────────────────────────────────────────
 
 function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }) {
   return (
@@ -91,31 +91,55 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm"
+      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-4 sm:p-5 rounded-2xl max-w-sm"
       style={{
         background: 'rgba(26,26,46,0.95)',
-        backdropFilter: 'blur(12px)',
-        borderColor: 'rgba(34,217,127,0.3)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(34,217,127,0.2)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(34,217,127,0.1)',
       }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="text-base sm:text-lg font-bold text-white mb-1 truncate">
+          <div className="text-base sm:text-lg font-bold text-white mb-1.5 truncate">
             🍽️ {entry.foodHe}
           </div>
-          <div className="text-xl sm:text-2xl font-bold" style={{ color: '#22D97F' }}>
-            {entry.calories} <span className="text-sm text-gray-400">קק״ל</span>
+          <div className="text-2xl sm:text-3xl font-bold font-sora gradient-text-glow">
+            {entry.calories} <span className="text-sm text-text-tertiary" style={{ WebkitTextFillColor: 'initial', background: 'none' }}>קק״ל</span>
           </div>
-          <div className="flex gap-3 mt-2 text-xs text-gray-400">
-            <span>ח: {entry.protein}g</span>
-            <span>פ: {entry.carbs}g</span>
-            <span>ש: {entry.fat}g</span>
+          <div className="flex gap-3 mt-2">
+            <span className="macro-pill">
+              <span className="w-1.5 h-1.5 rounded-full bg-macro-protein" />
+              <span className="text-macro-protein text-xs">ח:{entry.protein}g</span>
+            </span>
+            <span className="macro-pill">
+              <span className="w-1.5 h-1.5 rounded-full bg-macro-carbs" />
+              <span className="text-macro-carbs text-xs">פ:{entry.carbs}g</span>
+            </span>
+            <span className="macro-pill">
+              <span className="w-1.5 h-1.5 rounded-full bg-macro-fat" />
+              <span className="text-macro-fat text-xs">ש:{entry.fat}g</span>
+            </span>
           </div>
-          <div className="text-xs mt-1" style={{ color: entry.confidence > 0.85 ? '#22c55e' : '#f59e0b' }}>
-            ביטחון: {Math.round(entry.confidence * 100)}%
+          <div className="flex items-center gap-1.5 mt-2">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{
+                backgroundColor: entry.confidence > 0.85 ? '#22c55e' : '#f59e0b',
+                boxShadow: `0 0 4px ${entry.confidence > 0.85 ? '#22c55e' : '#f59e0b'}44`,
+              }}
+            />
+            <span className="text-xs text-text-tertiary">
+              ביטחון {Math.round(entry.confidence * 100)}%
+            </span>
           </div>
         </div>
-        <button onClick={onClose} className="text-gray-500 hover:text-white text-xl min-w-[44px] min-h-[44px] flex items-center justify-center">×</button>
+        <button
+          onClick={onClose}
+          className="text-text-tertiary hover:text-white text-lg min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition-colors"
+        >
+          ✕
+        </button>
       </div>
     </motion.div>
   );
@@ -130,23 +154,28 @@ function ErrorToast({ message, onClick, onClose }: { message: string; onClick?: 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm cursor-pointer"
+      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-4 rounded-2xl max-w-sm cursor-pointer"
       style={{
         background: 'rgba(46,26,26,0.95)',
-        backdropFilter: 'blur(12px)',
-        borderColor: 'rgba(239,68,68,0.3)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(239,68,68,0.2)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
       }}
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm">⚠️</span>
+            <span className="text-xs font-semibold text-red-400">שגיאה</span>
+          </div>
           <div className="text-sm text-red-300 leading-relaxed">{message}</div>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="text-gray-500 hover:text-white text-xl min-w-[44px] min-h-[44px] flex items-center justify-center"
+          className="text-text-tertiary hover:text-white text-lg min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition-colors"
         >
-          ×
+          ✕
         </button>
       </div>
     </motion.div>
@@ -160,20 +189,22 @@ function ErrorBanner({ message, onClick }: { message: string; onClick: () => voi
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed top-14 sm:top-16 inset-x-0 z-40 px-4 py-2.5 text-center text-sm font-medium cursor-pointer"
+      className="fixed top-14 sm:top-16 inset-x-0 z-40 px-4 py-2.5 text-center text-sm font-medium cursor-pointer flex items-center justify-center gap-2"
       style={{
-        background: 'rgba(239,68,68,0.15)',
-        borderBottom: '1px solid rgba(239,68,68,0.3)',
+        background: 'rgba(239,68,68,0.12)',
+        borderBottom: '1px solid rgba(239,68,68,0.2)',
         color: '#fca5a5',
+        backdropFilter: 'blur(12px)',
       }}
       onClick={onClick}
     >
+      <span className="text-xs">🔑</span>
       {message}
     </motion.div>
   );
 }
 
-// ── API Key Modal (inline, simple) ──────────────────────────────────────────
+// ── API Key Modal ──────────────────────────────────────────────────────────
 
 function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClose: () => void }) {
   const [key, setKeyValue] = useState('');
@@ -181,19 +212,64 @@ function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="p-6 rounded-2xl max-w-md w-full" style={{ background: '#1a1a2e', border: '1px solid rgba(57,255,20,0.2)' }}>
-        <div className="text-center mb-4">
-          <div className="text-4xl mb-2">👁️</div>
-          <h2 className="text-xl font-bold text-white">CalEye</h2>
-          <p className="text-sm text-gray-400 mt-1">חיבור ל-AI Vision</p>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="p-6 rounded-2xl max-w-md w-full"
+        style={{
+          background: 'rgba(26, 26, 46, 0.95)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(24px)',
+        }}
+      >
+        {/* Header */}
+        <div className="text-center mb-5">
+          <div
+            className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-3"
+            style={{
+              background: 'linear-gradient(135deg, rgba(34,217,127,0.15), rgba(6,182,212,0.15))',
+              border: '1px solid rgba(34,217,127,0.2)',
+            }}
+          >
+            👁️
+          </div>
+          <h2 className="text-xl font-bold text-white font-sora">CalEye</h2>
+          <p className="text-sm text-text-tertiary mt-1">חיבור ל-AI Vision</p>
         </div>
 
-        <div className="rounded-xl p-4 mb-4" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.06)' }}>
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+              style={{ background: 'rgba(34,217,127,0.2)', color: '#22D97F' }}>1</span>
+            <span className="text-xs text-text-tertiary">מפתח API</span>
+          </div>
+          <div className="w-8 h-px bg-white/10" />
+          <div className="flex items-center gap-1.5">
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+              style={{ background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>2</span>
+            <span className="text-xs text-text-tertiary">מצלמה</span>
+          </div>
+          <div className="w-8 h-px bg-white/10" />
+          <div className="flex items-center gap-1.5">
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+              style={{ background: 'rgba(255,255,255,0.05)', color: '#64748b' }}>3</span>
+            <span className="text-xs text-text-tertiary">זיהוי</span>
+          </div>
+        </div>
+
+        {/* API Key input card */}
+        <div
+          className="rounded-xl p-4 mb-4"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <div className="flex items-center gap-2 mb-2">
             <span className="text-sm">🔗</span>
             <span className="text-sm font-bold text-white">OpenRouter API Key</span>
           </div>
-          <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+          <p className="text-xs text-text-tertiary mb-3 leading-relaxed">
             CalEye משתמש ב-OpenRouter כדי לזהות אוכל דרך המצלמה.
             <br />המפתח נשמר רק במכשיר שלך — לא נשלח לשום מקום.
           </p>
@@ -212,15 +288,18 @@ function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClo
               value={key}
               onChange={(e) => setKeyValue(e.target.value)}
               placeholder="sk-or-..."
-              className="w-full p-3 pr-10 rounded-lg text-white text-sm font-mono"
-              style={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.1)' }}
+              className="w-full p-3 pr-10 rounded-xl text-white text-sm font-mono transition-all focus:ring-1 focus:ring-accent/30 focus:outline-none"
+              style={{
+                background: 'rgba(10, 14, 23, 0.8)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
               onKeyDown={(e) => e.key === 'Enter' && key.trim() && onSave(key.trim())}
               dir="ltr"
               autoFocus
             />
             <button
               onClick={() => setShowKey(!showKey)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-white text-xs transition-colors"
             >
               {showKey ? '🙈' : '👁️'}
             </button>
@@ -231,27 +310,30 @@ function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClo
           <button
             onClick={() => key.trim() && onSave(key.trim())}
             disabled={!key.trim()}
-            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
             style={{
-              background: key.trim() ? '#22D97F' : 'rgba(34,217,127,0.2)',
+              background: key.trim()
+                ? 'linear-gradient(135deg, #22D97F, #06B6D4)'
+                : 'rgba(34,217,127,0.15)',
               color: key.trim() ? '#0a0e17' : 'rgba(255,255,255,0.3)',
+              boxShadow: key.trim() ? '0 4px 16px rgba(34,217,127,0.2)' : undefined,
             }}
           >
-            🚀 התחל לעקוב
+            התחל לעקוב
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            className="px-4 py-3 rounded-xl text-text-tertiary hover:text-white text-sm transition-all hover:bg-white/[0.05]"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             ✕
           </button>
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-3">
-          🔒 המפתח נשמר ב-localStorage בלבד
+        <p className="text-center text-xs text-text-tertiary mt-3 flex items-center justify-center gap-1">
+          <span>🔒</span> המפתח נשמר ב-localStorage בלבד
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -451,7 +533,7 @@ export default function DashboardPage() {
   };
 
   // Status text
-  const statusText = isPending ? '🔄 מנתח...' : isDetecting ? '👁️ מחפש...' : '⏸️ מושהה';
+  const statusText = isPending ? 'מנתח...' : isDetecting ? 'מחפש...' : 'מושהה';
   const statusColor = isPending ? '#f59e0b' : isDetecting ? '#22D97F' : '#6b7280';
 
   // Webcam card border color — red when there's a detection error
@@ -519,8 +601,12 @@ export default function DashboardPage() {
         mobileTopCard={
           /* Compact 16:9 webcam card for mobile — shown inline above dashboard */
           <div
-            className="rounded-2xl overflow-hidden relative border cursor-pointer aspect-video"
-            style={{ background: '#0a0a0f', borderColor: webcamBorderColor }}
+            className="rounded-2xl overflow-hidden relative cursor-pointer aspect-video"
+            style={{
+              background: '#0a0a0f',
+              border: `1px solid ${webcamBorderColor}`,
+              boxShadow: `0 4px 16px ${webcamBorderColor}`,
+            }}
             onClick={toggleDetection}
           >
             {webcamStatus === 'active' || webcamStatus === 'requesting' ? (
@@ -533,7 +619,7 @@ export default function DashboardPage() {
               />
             ) : (
               <div className="h-full flex items-center justify-center">
-                <span className="text-gray-500 text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
+                <span className="text-text-tertiary text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
               </div>
             )}
             {/* Camera flip button */}
@@ -542,31 +628,46 @@ export default function DashboardPage() {
                 e.stopPropagation();
                 setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
               }}
-              className="absolute top-2 left-2 w-10 h-10 rounded-full flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
-              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+              className="absolute top-2 left-2 w-10 h-10 rounded-xl flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
+              style={{
+                background: 'rgba(10,14,23,0.7)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
               aria-label="החלף מצלמה"
             >
               <span className="text-lg">🔄</span>
             </button>
             {/* Status overlay */}
             <div
-              className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
-              style={{ background: 'rgba(0,0,0,0.7)' }}
+              className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs"
+              style={{
+                background: 'linear-gradient(transparent, rgba(10,14,23,0.9))',
+              }}
             >
-              <span style={{ color: detectionError ? '#ef4444' : statusColor }}>
-                {detectionError && !isPersistentError(detectionError) ? '⚠️ שגיאה' : statusText}
-              </span>
-              <span className="text-gray-500">
+              <div className="flex items-center gap-1.5">
+                {isDetecting && !detectionError && (
+                  <span className="live-dot" />
+                )}
+                <span className="font-medium" style={{ color: detectionError ? '#ef4444' : statusColor }}>
+                  {detectionError && !isPersistentError(detectionError) ? 'שגיאה' : statusText}
+                </span>
+              </div>
+              <span className="text-text-tertiary">
                 {isDetecting ? 'לחץ להשהיה' : 'לחץ להפעלה'}
               </span>
             </div>
             {/* Coach message overlay on mobile */}
             {latestCoachMsg && (
               <div
-                className="absolute top-2 right-2 max-w-[60%] px-3 py-1.5 rounded-xl text-xs text-gray-200 leading-snug"
-                style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+                className="absolute top-2 right-2 max-w-[60%] px-3 py-2 rounded-xl text-xs text-gray-200 leading-snug"
+                style={{
+                  background: 'rgba(10,14,23,0.8)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                }}
               >
-                <span style={{ color: '#22D97F' }}>🤖 גל: </span>
+                <span className="font-semibold" style={{ color: '#22D97F' }}>🤖 גל: </span>
                 {latestCoachMsg.text}
               </div>
             )}
@@ -586,10 +687,24 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4">
             {/* REAL Webcam */}
             <div
-              className="rounded-2xl overflow-hidden relative border cursor-pointer"
-              style={{ background: '#0a0a0f', borderColor: webcamBorderColor }}
+              className="rounded-2xl overflow-hidden relative cursor-pointer"
+              style={{
+                background: '#0a0a0f',
+                border: `1px solid ${webcamBorderColor}`,
+                boxShadow: `0 4px 16px ${webcamBorderColor}`,
+              }}
               onClick={toggleDetection}
             >
+              {/* LIVE indicator */}
+              {isDetecting && !detectionError && (
+                <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(10,14,23,0.8)', backdropFilter: 'blur(8px)', border: '1px solid rgba(239,68,68,0.3)' }}
+                >
+                  <span className="live-dot" />
+                  <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+                </div>
+              )}
+
               {webcamStatus === 'active' || webcamStatus === 'requesting' ? (
                 <Webcam
                   ref={webcamRef}
@@ -600,7 +715,7 @@ export default function DashboardPage() {
                 />
               ) : (
                 <div className="h-40 flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
+                  <span className="text-text-tertiary text-sm">{webcamError || 'מצלמה לא פעילה'}</span>
                 </div>
               )}
               {/* Camera flip button */}
@@ -609,21 +724,29 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
                 }}
-                className="absolute top-2 left-2 w-10 h-10 rounded-full flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
-                style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+                className="absolute top-3 left-3 w-10 h-10 rounded-xl flex items-center justify-center z-10 transition-transform duration-200 active:scale-90"
+                style={{
+                  background: 'rgba(10,14,23,0.7)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
                 aria-label="החלף מצלמה"
               >
                 <span className="text-lg">🔄</span>
               </button>
               {/* Status overlay */}
               <div
-                className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
-                style={{ background: 'rgba(0,0,0,0.7)' }}
+                className="absolute bottom-0 left-0 right-0 px-3 py-2.5 flex items-center justify-between text-xs"
+                style={{
+                  background: 'linear-gradient(transparent, rgba(10,14,23,0.9))',
+                }}
               >
-                <span style={{ color: detectionError ? '#ef4444' : statusColor }}>
-                  {detectionError && !isPersistentError(detectionError) ? '⚠️ שגיאה' : statusText}
-                </span>
-                <span className="text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium" style={{ color: detectionError ? '#ef4444' : statusColor }}>
+                    {detectionError && !isPersistentError(detectionError) ? 'שגיאה' : statusText}
+                  </span>
+                </div>
+                <span className="text-text-tertiary">
                   {isDetecting ? 'לחץ להשהיה' : 'לחץ להפעלה'}
                 </span>
               </div>
@@ -642,10 +765,10 @@ export default function DashboardPage() {
             {/* Detection error — more visible on sidebar */}
             {detectionError && (
               <div
-                className="rounded-xl p-3 text-sm cursor-pointer"
+                className="rounded-xl p-3 text-sm cursor-pointer transition-colors"
                 style={{
-                  background: isPersistentError(detectionError) ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
-                  border: `1px solid ${isPersistentError(detectionError) ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                  background: isPersistentError(detectionError) ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
+                  border: `1px solid ${isPersistentError(detectionError) ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'}`,
                   color: isPersistentError(detectionError) ? '#fca5a5' : '#fcd34d',
                 }}
                 onClick={isPersistentError(detectionError) ? () => setShowApiKey(true) : undefined}
@@ -654,42 +777,66 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Coach */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(26,26,46,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🤖</span>
+            {/* Coach — chat bubble style */}
+            <div
+              className="glass-card p-4"
+            >
+              <div className="flex items-center gap-2.5 mb-3">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(34,217,127,0.15), rgba(6,182,212,0.15))',
+                    border: '1px solid rgba(34,217,127,0.2)',
+                  }}
+                >
+                  🤖
+                </div>
                 <span className="text-sm font-bold" style={{ color: '#22D97F' }}>גל</span>
+                <span className="text-[10px] text-text-tertiary">מאמן AI</span>
               </div>
-              <p className="text-sm text-gray-300 leading-relaxed">
+              <div
+                className="rounded-xl p-3 text-sm text-text-secondary leading-relaxed"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}
+              >
                 {latestCoachMsg
                   ? latestCoachMsg.text
                   : todayLog.entries.length === 0
-                    ? `בוקר טוב ${profile.name}! המצלמה פעילה — תאכל משהו ואני אזהה את זה 😎`
-                    : `יום מעולה ${profile.name}! ${todayLog.totalCalories} קלוריות עד עכשיו 💪`
+                    ? `בוקר טוב ${profile.name}! המצלמה פעילה — תאכל משהו ואני אזהה את זה`
+                    : `יום מעולה ${profile.name}! ${todayLog.totalCalories} קלוריות עד עכשיו`
                 }
-              </p>
+              </div>
             </div>
 
-            {/* Stats */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(26,26,46,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="text-sm text-gray-400 mb-2">סטטיסטיקות</div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">ארוחות היום</span>
-                <span className="text-white font-bold">{todayLog.entries.length}</span>
+            {/* Stats — colored numbers */}
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm">📊</span>
+                <span className="text-sm font-semibold text-text-primary">סטטיסטיקות</span>
               </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-400">XP היום</span>
-                <span className="font-bold" style={{ color: '#f59e0b' }}>+{todayLog.xpEarned}</span>
-              </div>
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-400">רמה</span>
-                <span className="text-white font-bold">טירון (Lv.{profile.level})</span>
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-tertiary">ארוחות היום</span>
+                  <span className="text-text-primary font-bold tabular-nums">{todayLog.entries.length}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-tertiary">XP היום</span>
+                  <span className="font-bold tabular-nums" style={{ color: '#f59e0b' }}>+{todayLog.xpEarned}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-text-tertiary">רמה</span>
+                  <span
+                    className="font-bold text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.15)' }}
+                  >
+                    Lv.{profile.level}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         }
       >
-        <div className="flex flex-col gap-3 md:gap-4">
+        <div className="flex flex-col gap-4 md:gap-5">
           <DailySummary log={todayLog} profile={profile} />
           <HourlyChart data={hourlyData} />
           <FoodLog

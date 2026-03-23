@@ -13,18 +13,11 @@ interface FoodLogEntryProps {
   onDelete?: (entryId: string) => void;
 }
 
-/** Returns confidence badge color class based on percentage */
-function getConfidenceColor(confidence: number): string {
-  if (confidence >= 0.85) return 'text-success';
-  if (confidence >= 0.70) return 'text-accent-warm';
-  return 'text-error';
-}
-
-/** Returns confidence badge background class */
-function getConfidenceBg(confidence: number): string {
-  if (confidence >= 0.85) return 'bg-success/10';
-  if (confidence >= 0.70) return 'bg-accent-warm/10';
-  return 'bg-error/10';
+/** Returns confidence dot color based on percentage */
+function getConfidenceDotColor(confidence: number): string {
+  if (confidence >= 0.85) return '#22c55e';
+  if (confidence >= 0.70) return '#f59e0b';
+  return '#ef4444';
 }
 
 /**
@@ -47,7 +40,6 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
     minute: '2-digit',
     hour12: false,
   });
-  const confidencePct = Math.round(entry.confidence * 100);
 
   return (
     <motion.div
@@ -77,13 +69,20 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
           }
         }}
         style={{ x }}
-        className="glass-card p-3 sm:p-md cursor-pointer transition-colors duration-200 hover:border-white/[0.15] relative"
+        className="glass-card p-4 sm:p-5 cursor-pointer transition-colors duration-200 hover:border-white/[0.12] relative"
         onClick={() => setExpanded(!expanded)}
       >
+        {/* Swipe hint — subtle gradient on right edge */}
+        <div className="absolute inset-y-0 right-0 w-8 pointer-events-none opacity-30 md:hidden"
+          style={{ background: 'linear-gradient(to left, rgba(255,255,255,0.03), transparent)' }}
+        />
+
         {/* Main row */}
-        <div className="flex items-start gap-sm sm:gap-md">
+        <div className="flex items-start gap-3 sm:gap-4">
           {/* Thumbnail */}
-          <div className="flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-thumb bg-bg-elevated overflow-hidden">
+          <div className="flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-bg-elevated overflow-hidden"
+            style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+          >
             {entry.thumbnail ? (
               <img
                 src={entry.thumbnail}
@@ -99,50 +98,56 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Top line: time + food name */}
-            <div className="flex items-baseline gap-xs sm:gap-sm mb-xs">
-              <span className="text-text-tertiary text-caption sm:text-body-sm flex-shrink-0">
+            {/* Top line: time pill + food name */}
+            <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
+              <span
+                className="text-text-tertiary text-[10px] sm:text-xs flex-shrink-0 px-2 py-0.5 rounded-full tabular-nums"
+                style={{ background: 'rgba(255,255,255,0.05)' }}
+              >
                 {timeStr}
               </span>
-              <span className="text-text-primary font-semibold text-body-sm sm:text-body truncate">
+              <span className="text-text-primary font-semibold text-sm sm:text-base truncate">
                 {entry.foodHe}
               </span>
             </div>
 
-            {/* Calories + macros on mobile in one row */}
-            <div className="flex items-baseline gap-sm flex-wrap">
-              <div className="mb-0">
-                <span className="text-accent font-bold text-body sm:text-h3">
-                  {entry.calories}
-                </span>
-                <span className="text-text-secondary text-caption sm:text-body-sm mr-1">קק״ל</span>
-              </div>
+            {/* Calories — large and accent-colored */}
+            <div className="flex items-baseline gap-1 mb-2">
+              <span className="font-bold text-lg sm:text-xl tabular-nums" style={{ color: '#22D97F' }}>
+                {entry.calories}
+              </span>
+              <span className="text-text-tertiary text-xs">קק״ל</span>
+            </div>
 
-              {/* Macros row */}
-              <div className="flex items-center gap-xs sm:gap-sm text-caption sm:text-body-sm">
-                <span className="text-macro-protein">
-                  ח: {entry.protein}g
-                </span>
-                <span className="text-text-tertiary">|</span>
-                <span className="text-macro-carbs">
-                  פ: {entry.carbs}g
-                </span>
-                <span className="text-text-tertiary">|</span>
-                <span className="text-macro-fat">
-                  ש: {entry.fat}g
-                </span>
-              </div>
+            {/* Macros in colored pills */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="macro-pill">
+                <span className="w-1.5 h-1.5 rounded-full bg-macro-protein flex-shrink-0" />
+                <span className="text-macro-protein">ח:{entry.protein}g</span>
+              </span>
+              <span className="macro-pill">
+                <span className="w-1.5 h-1.5 rounded-full bg-macro-carbs flex-shrink-0" />
+                <span className="text-macro-carbs">פ:{entry.carbs}g</span>
+              </span>
+              <span className="macro-pill">
+                <span className="w-1.5 h-1.5 rounded-full bg-macro-fat flex-shrink-0" />
+                <span className="text-macro-fat">ש:{entry.fat}g</span>
+              </span>
             </div>
           </div>
 
-          {/* Right side: confidence + edit */}
-          <div className="flex flex-col items-end gap-xs sm:gap-sm flex-shrink-0">
-            {/* Confidence badge */}
-            <span
-              className={`px-1.5 sm:px-2 py-0.5 rounded-full text-caption font-medium ${getConfidenceColor(entry.confidence)} ${getConfidenceBg(entry.confidence)}`}
-            >
-              {confidencePct}%
-            </span>
+          {/* Right side: confidence dot + edit */}
+          <div className="flex flex-col items-end gap-2 sm:gap-3 flex-shrink-0">
+            {/* Confidence as colored dot with subtle ring */}
+            <div className="flex items-center gap-1">
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{
+                  backgroundColor: getConfidenceDotColor(entry.confidence),
+                  boxShadow: `0 0 6px ${getConfidenceDotColor(entry.confidence)}44`,
+                }}
+              />
+            </div>
 
             {/* Edit button — larger touch target */}
             <button
@@ -150,7 +155,7 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
                 e.stopPropagation();
                 onEdit?.(entry);
               }}
-              className="text-text-tertiary hover:text-text-secondary text-body-sm transition-colors duration-200 flex items-center gap-[2px] min-w-[44px] min-h-[44px] justify-center sm:min-w-0 sm:min-h-0"
+              className="text-text-tertiary hover:text-text-secondary text-sm transition-all duration-200 flex items-center gap-[2px] min-w-[44px] min-h-[44px] justify-center sm:min-w-0 sm:min-h-0 rounded-lg hover:bg-white/[0.04]"
               aria-label="תקן זיהוי"
             >
               ✏️ <span className="text-caption hidden sm:inline">תקן</span>
@@ -168,10 +173,13 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
               transition={{ duration: 0.3, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className="mt-md pt-md border-t border-white/[0.06]">
+              <div className="mt-4 pt-4 border-t border-white/[0.06]">
                 {/* Larger image */}
                 {entry.thumbnail && (
-                  <div className="w-full max-w-xs rounded-card overflow-hidden mb-md">
+                  <div
+                    className="w-full max-w-xs rounded-2xl overflow-hidden mb-4"
+                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+                  >
                     <img
                       src={entry.thumbnail}
                       alt={entry.foodHe}
@@ -181,20 +189,23 @@ export default function FoodLogEntry({ entry, index = 0, onEdit, onDelete }: Foo
                 )}
 
                 {/* Detailed macro bars */}
-                <div className="space-y-sm mb-md">
+                <div className="space-y-2.5 mb-4">
                   <MacroBar label="חלבון" value={entry.protein} color="#3b82f6" max={50} />
                   <MacroBar label="פחמימות" value={entry.carbs} color="#22c55e" max={80} />
                   <MacroBar label="שומן" value={entry.fat} color="#f59e0b" max={40} />
                 </div>
 
                 {/* AI reasoning */}
-                <div className="text-text-secondary text-body-sm leading-relaxed">
+                <div
+                  className="text-text-secondary text-sm leading-relaxed rounded-xl p-3"
+                  style={{ background: 'rgba(255,255,255,0.03)' }}
+                >
                   <span className="text-text-tertiary">🤖 </span>
-                  זיהיתי {entry.foodHe} לפי מאפיינים חזותיים. רמת ביטחון: {confidencePct}%.
+                  זיהיתי {entry.foodHe} לפי מאפיינים חזותיים. רמת ביטחון: {Math.round(entry.confidence * 100)}%.
                 </div>
 
                 {/* Report as incorrect */}
-                <button className="mt-sm text-text-tertiary text-caption hover:text-error transition-colors duration-200">
+                <button className="mt-3 text-text-tertiary text-xs hover:text-error transition-colors duration-200">
                   דווח כשגוי
                 </button>
               </div>
@@ -218,15 +229,19 @@ interface MacroBarProps {
 function MacroBar({ label, value, color, max }: MacroBarProps) {
   const pct = Math.min((value / max) * 100, 100);
   return (
-    <div className="flex items-center gap-sm">
-      <span className="text-text-secondary text-caption w-14 text-start">{label}</span>
+    <div className="flex items-center gap-2.5">
+      <span className="text-text-secondary text-xs w-14 text-start">{label}</span>
       <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
+          style={{
+            width: `${pct}%`,
+            backgroundColor: color,
+            boxShadow: `0 0 6px ${color}33`,
+          }}
         />
       </div>
-      <span className="text-text-primary text-caption font-medium w-8 text-end">
+      <span className="text-text-primary text-xs font-medium w-8 text-end tabular-nums">
         {value}g
       </span>
     </div>
