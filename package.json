@@ -1,0 +1,9 @@
+{
+  "name": "caleye",
+  "version": "1.0.0",
+  "description": "CalEye — AI-powered webcam food tracker",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  }
+}
