@@ -102,39 +102,80 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
 
 function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClose: () => void }) {
   const [key, setKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="p-6 rounded-2xl max-w-md w-full mx-4" style={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <h2 className="text-xl font-bold text-white mb-2">🔑 הגדרת Gemini API Key</h2>
-        <p className="text-sm text-gray-400 mb-4">
-          כדי שהמצלמה תזהה אוכל, צריך מפתח Gemini (חינם).
-          <br />
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="underline" style={{ color: '#22D97F' }}>
-            קבל מפתח חינם מ-Google AI Studio →
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="p-6 rounded-2xl max-w-md w-full" style={{ background: '#1a1a2e', border: '1px solid rgba(57,255,20,0.2)' }}>
+        <div className="text-center mb-4">
+          <div className="text-4xl mb-2">👁️</div>
+          <h2 className="text-xl font-bold text-white">CalEye</h2>
+          <p className="text-sm text-gray-400 mt-1">חיבור ל-AI Vision</p>
+        </div>
+
+        <div className="rounded-xl p-4 mb-4" style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm">🔗</span>
+            <span className="text-sm font-bold text-white">OpenRouter API Key</span>
+          </div>
+          <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+            CalEye משתמש ב-OpenRouter כדי לזהות אוכל דרך המצלמה.
+            <br />המפתח נשמר רק במכשיר שלך — לא נשלח לשום מקום.
+          </p>
+          <a
+            href="https://openrouter.ai/keys"
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-1 text-xs font-medium mb-3 hover:underline"
+            style={{ color: '#22D97F' }}
+          >
+            קבל מפתח חינם מ-OpenRouter →
           </a>
-        </p>
-        <input
-          type="password"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="הכנס API Key..."
-          className="w-full p-3 rounded-lg text-white text-sm mb-3"
-          style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)' }}
-          onKeyDown={(e) => e.key === 'Enter' && key.trim() && onSave(key.trim())}
-        />
+          <div className="relative">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder="sk-or-..."
+              className="w-full p-3 pr-10 rounded-lg text-white text-sm font-mono"
+              style={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.1)' }}
+              onKeyDown={(e) => e.key === 'Enter' && key.trim() && onSave(key.trim())}
+              dir="ltr"
+              autoFocus
+            />
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs"
+            >
+              {showKey ? '🙈' : '👁️'}
+            </button>
+          </div>
+        </div>
+
         <div className="flex gap-2">
           <button
             onClick={() => key.trim() && onSave(key.trim())}
-            className="flex-1 py-2 rounded-lg font-bold text-black"
-            style={{ background: '#22D97F' }}
+            disabled={!key.trim()}
+            className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+            style={{
+              background: key.trim() ? '#22D97F' : 'rgba(34,217,127,0.2)',
+              color: key.trim() ? '#0a0e17' : 'rgba(255,255,255,0.3)',
+            }}
           >
-            שמור והתחל
+            🚀 התחל לעקוב
           </button>
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white" style={{ background: 'rgba(255,255,255,0.05)' }}>
-            סגור
+          <button
+            onClick={onClose}
+            className="px-4 py-3 rounded-xl text-gray-400 hover:text-white text-sm"
+            style={{ background: 'rgba(255,255,255,0.05)' }}
+          >
+            ✕
           </button>
         </div>
+
+        <p className="text-center text-xs text-gray-600 mt-3">
+          🔒 המפתח נשמר ב-localStorage בלבד
+        </p>
       </div>
     </div>
   );
