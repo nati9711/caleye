@@ -2,9 +2,9 @@ import type { DetectionResult } from '../types';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'google/gemini-2.0-flash-001';
 
-const API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const API_BASE_URL = 'https://openrouter.ai/api/v1';
 
 const DETECTION_PROMPT = `Analyze this image from a webcam. Determine if the person is eating or holding food.
 If yes, identify the food and estimate nutritional values.
@@ -88,28 +88,34 @@ async function analyzeWithFetch(
   base64Image: string,
   apiKey: string
 ): Promise<DetectionResult> {
-  const url = `${API_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${API_BASE_URL}/chat/completions`;
 
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      contents: [
+      model: GEMINI_MODEL,
+      response_format: { type: 'json_object' },
+      messages: [
         {
-          parts: [
+          role: 'user',
+          content: [
             {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: base64Image,
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
               },
             },
-            { text: DETECTION_PROMPT },
+            {
+              type: 'text',
+              text: DETECTION_PROMPT,
+            },
           ],
         },
       ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
     }),
   });
 
@@ -121,13 +127,14 @@ async function analyzeWithFetch(
   }
 
   const data = await response.json();
+  console.log('[CalEye] OpenRouter response:', data);
 
-  // Extract text from the Gemini REST response structure
+  // Extract text from OpenAI-compatible response
   const text =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    data?.choices?.[0]?.message?.content ?? '';
 
   if (!text) {
-    throw new Error('Empty response from Gemini API');
+    throw new Error('Empty response from OpenRouter API');
   }
 
   return parseDetectionResponse(text);
@@ -203,18 +210,14 @@ export async function analyzeFrame(
 
   markCallMade();
 
-  // Strategy 1: SDK
-  try {
-    return await analyzeWithSDK(base64Image, apiKey);
-  } catch (sdkError) {
-    console.debug('[CalEye] SDK unavailable, falling back to fetch', sdkError);
-  }
+  console.log('[CalEye] 🔍 Analyzing frame via OpenRouter...');
 
-  // Strategy 2: Direct fetch
   try {
-    return await analyzeWithFetch(base64Image, apiKey);
+    const result = await analyzeWithFetch(base64Image, apiKey);
+    console.log('[CalEye] ✅ Result:', JSON.stringify(result));
+    return result;
   } catch (fetchError) {
-    console.error('[CalEye] Gemini analysis failed', fetchError);
+    console.error('[CalEye] ❌ Failed:', fetchError);
     return { eating: false };
   }
 }
