@@ -56,13 +56,24 @@ export default function DailySummary({ log, profile, className = '' }: DailySumm
       <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-md sm:gap-lg">
         {/* Calories block — full width on mobile */}
         <div className="flex flex-col items-center sm:items-start gap-xs w-full sm:w-auto">
-          <AnimatedCounter
-            value={log.totalCalories}
-            className="text-[28px] sm:text-[32px] font-bold text-accent leading-none"
-          />
-          <span className="text-text-secondary text-body-sm">
-            קק״ל מתוך {profile.calorieGoal.toLocaleString('he-IL')}
-          </span>
+          {log.totalCalories === 0 ? (
+            <div className="flex flex-col items-center sm:items-start gap-xs">
+              <span className="text-2xl sm:text-3xl">👁️</span>
+              <span className="text-text-secondary text-body-sm">
+                המצלמה פעילה — תאכל משהו ואני אזהה!
+              </span>
+            </div>
+          ) : (
+            <>
+              <AnimatedCounter
+                value={log.totalCalories}
+                className="text-[28px] sm:text-[32px] font-bold text-accent leading-none"
+              />
+              <span className="text-text-secondary text-body-sm">
+                קק״ל מתוך {profile.calorieGoal.toLocaleString('he-IL')}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Macro ring — full width centered on mobile */}

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Webcam from 'react-webcam';
 import { useWebcam } from '../../hooks/useWebcam';
 import { useFoodDetection } from '../../hooks/useFoodDetection';
-import { getApiKey } from '../../lib/gemini';
+import { getApiKey, setApiKey } from '../../lib/gemini';
+import { lookupNutrition } from '../../lib/nutrition';
 import { getPostMealMessage } from '../../lib/coach';
 import { useAppStore } from '../../stores/app-store';
 import Header from '../layout/Header';
@@ -11,6 +12,9 @@ import MainLayout from '../layout/MainLayout';
 import DailySummary from './DailySummary';
 import HourlyChart from './HourlyChart';
 import FoodLog from './FoodLog';
+import ConfirmFoodDialog from '../shared/ConfirmFoodDialog';
+import EditFoodDialog from '../shared/EditFoodDialog';
+import WelcomeScreen from '../shared/WelcomeScreen';
 import type { FoodEntry, UserProfile } from '../../types';
 
 type FacingMode = 'user' | 'environment';
@@ -32,6 +36,27 @@ function buildHourlyData(entries: FoodEntry[]) {
     if (bucket) { bucket.calories += entry.calories; bucket.foods.push(entry.foodHe); }
   }
   return hours;
+}
+
+/** Translate error codes to Hebrew user-facing messages */
+function getErrorMessage(error: string): string {
+  switch (error) {
+    case 'NO_API_KEY':
+      return '🔑 לא הוזן מפתח API — לחץ כאן לעדכון';
+    case 'INVALID_API_KEY':
+      return '🔑 מפתח API לא תקין — לחץ לעדכון';
+    case 'RATE_LIMITED':
+      return '⏳ חריגה ממכסת API — ינסה שוב בעוד 30 שניות';
+    case 'NETWORK_ERROR':
+      return '⚠️ שגיאה בזיהוי — בדוק את חיבור האינטרנט';
+    default:
+      return `⚠️ שגיאה: ${error}`;
+  }
+}
+
+/** Check if this is a persistent error that needs a banner (vs toast) */
+function isPersistentError(error: string): boolean {
+  return error === 'NO_API_KEY' || error === 'INVALID_API_KEY';
 }
 
 /** Fallback profile used when the store has no profile yet (first-time user). */
@@ -96,10 +121,62 @@ function FoodToast({ entry, onClose }: { entry: FoodEntry; onClose: () => void }
   );
 }
 
+// ── Error Toast ────────────────────────────────────────────────────────────────
+
+function ErrorToast({ message, onClick, onClose }: { message: string; onClick?: () => void; onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -30 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="fixed top-20 left-3 right-3 sm:left-4 sm:right-auto z-50 p-3 sm:p-4 rounded-2xl border max-w-sm cursor-pointer"
+      style={{
+        background: 'rgba(46,26,26,0.95)',
+        backdropFilter: 'blur(12px)',
+        borderColor: 'rgba(239,68,68,0.3)',
+      }}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm text-red-300 leading-relaxed">{message}</div>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="text-gray-500 hover:text-white text-xl min-w-[44px] min-h-[44px] flex items-center justify-center"
+        >
+          ×
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Persistent Error Banner ──────────────────────────────────────────────────
+
+function ErrorBanner({ message, onClick }: { message: string; onClick: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed top-14 sm:top-16 inset-x-0 z-40 px-4 py-2.5 text-center text-sm font-medium cursor-pointer"
+      style={{
+        background: 'rgba(239,68,68,0.15)',
+        borderBottom: '1px solid rgba(239,68,68,0.3)',
+        color: '#fca5a5',
+      }}
+      onClick={onClick}
+    >
+      {message}
+    </motion.div>
+  );
+}
+
 // ── API Key Modal (inline, simple) ──────────────────────────────────────────
 
 function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClose: () => void }) {
-  const [key, setKey] = useState('');
+  const [key, setKeyValue] = useState('');
   const [showKey, setShowKey] = useState(false);
 
   return (
@@ -133,7 +210,7 @@ function ApiKeyModal({ onSave, onClose }: { onSave: (key: string) => void; onClo
             <input
               type={showKey ? 'text' : 'password'}
               value={key}
-              onChange={(e) => setKey(e.target.value)}
+              onChange={(e) => setKeyValue(e.target.value)}
               placeholder="sk-or-..."
               className="w-full p-3 pr-10 rounded-lg text-white text-sm font-mono"
               style={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.1)' }}
@@ -195,7 +272,6 @@ export default function DashboardPage() {
   // Handle null profile (first-time user): initialize default in store
   useEffect(() => {
     if (!storeProfile) {
-      // Set the default profile in the store so it persists
       useAppStore.setState({ profile: DEFAULT_PROFILE });
     }
   }, [storeProfile]);
@@ -210,15 +286,27 @@ export default function DashboardPage() {
 
   // ── Local UI state (not persisted) ─────────────────────────────────────────
   const [toast, setToast] = useState<FoodEntry | null>(null);
-  const [showApiKey, setShowApiKey] = useState(!getApiKey());
+  const [showApiKey, setShowApiKey] = useState(false);
   const [facingMode, setFacingMode] = useState<FacingMode>('user');
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+
+  // Confirmation dialog state (low confidence / needs_user_input)
+  const [confirmEntry, setConfirmEntry] = useState<FoodEntry | null>(null);
+  const [confirmQuestion, setConfirmQuestion] = useState<string | undefined>(undefined);
+
+  // Edit dialog state
+  const [editEntry, setEditEntry] = useState<FoodEntry | null>(null);
+
+  // Welcome screen: show when no API key AND no food log history
+  const hasApiKey = !!getApiKey();
+  const hasHistory = todayLog.entries.length > 0;
+  const [showWelcome, setShowWelcome] = useState(!hasApiKey && !hasHistory);
 
   // Webcam
   const { webcamRef, status: webcamStatus, isReady, capture, error: webcamError } = useWebcam();
 
   // Food detection callbacks — use store actions
   const onFoodDetected = useCallback((entry: FoodEntry) => {
-    // Add food entry to store (handles totals, badge checks, unique foods)
     addFoodEntry(entry);
 
     // Generate coach message using the coach module
@@ -241,6 +329,12 @@ export default function DashboardPage() {
     addXP(xp, 'food_detected');
   }, [addXP]);
 
+  // Confirmation callback for low-confidence detections
+  const onNeedsConfirmation = useCallback((entry: FoodEntry, userQuestion?: string) => {
+    setConfirmEntry(entry);
+    setConfirmQuestion(userQuestion);
+  }, []);
+
   // Detection hook
   const { isDetecting, isPending, toggleDetection, error: detectionError } = useFoodDetection({
     captureFrame: capture,
@@ -248,9 +342,19 @@ export default function DashboardPage() {
     onToast,
     onXpAwarded,
     isWebcamReady: isReady,
+    onNeedsConfirmation,
   });
 
-  // Delete entry handler — recalculate by removing entry and resetting totals
+  // Show error toast when detection error occurs (transient errors)
+  useEffect(() => {
+    if (detectionError && !isPersistentError(detectionError)) {
+      setErrorToast(getErrorMessage(detectionError));
+      const timer = setTimeout(() => setErrorToast(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [detectionError]);
+
+  // Delete entry handler
   const onDeleteEntry = useCallback((entryId: string) => {
     const state = useAppStore.getState();
     const entry = state.todayLog.entries.find((e) => e.id === entryId);
@@ -276,37 +380,147 @@ export default function DashboardPage() {
     });
   }, []);
 
+  // Edit entry handler — opens EditFoodDialog
+  const onEditEntry = useCallback((entry: FoodEntry) => {
+    setEditEntry(entry);
+  }, []);
+
+  // Save edited entry — replace in store
+  const handleEditSave = useCallback((updated: FoodEntry) => {
+    const state = useAppStore.getState();
+    const newEntries = state.todayLog.entries.map((e) => e.id === updated.id ? updated : e);
+    const totals = newEntries.reduce(
+      (acc, e) => ({
+        totalCalories: acc.totalCalories + e.calories,
+        totalProtein: acc.totalProtein + e.protein,
+        totalCarbs: acc.totalCarbs + e.carbs,
+        totalFat: acc.totalFat + e.fat,
+      }),
+      { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 },
+    );
+    useAppStore.setState({
+      todayLog: {
+        ...state.todayLog,
+        entries: newEntries,
+        ...totals,
+      },
+    });
+    setEditEntry(null);
+  }, []);
+
+  // Confirm dialog handlers
+  const handleConfirm = useCallback((entry: FoodEntry) => {
+    onFoodDetected(entry);
+    onToast(entry);
+    onXpAwarded(5);
+    setConfirmEntry(null);
+    setConfirmQuestion(undefined);
+  }, [onFoodDetected, onToast, onXpAwarded]);
+
+  const handleConfirmEdit = useCallback(async (entry: FoodEntry, newGrams: number) => {
+    // Recalculate from USDA with new grams
+    const usdaData = await lookupNutrition(entry.food, newGrams);
+    const updatedEntry = usdaData
+      ? { ...entry, calories: usdaData.calories, protein: usdaData.protein, carbs: usdaData.carbs, fat: usdaData.fat }
+      : entry;
+
+    onFoodDetected(updatedEntry);
+    onToast(updatedEntry);
+    onXpAwarded(5);
+    setConfirmEntry(null);
+    setConfirmQuestion(undefined);
+  }, [onFoodDetected, onToast, onXpAwarded]);
+
+  const handleConfirmReject = useCallback(() => {
+    setConfirmEntry(null);
+    setConfirmQuestion(undefined);
+  }, []);
+
   // Hourly data
   const hourlyData = useMemo(() => buildHourlyData(todayLog.entries), [todayLog.entries]);
 
   // API key save
   const handleApiKeySave = (key: string) => {
-    localStorage.setItem('caleye_gemini_api_key', key);
+    setApiKey(key);
     setShowApiKey(false);
+  };
+
+  // Welcome complete handler
+  const handleWelcomeComplete = () => {
+    setShowWelcome(false);
   };
 
   // Status text
   const statusText = isPending ? '🔄 מנתח...' : isDetecting ? '👁️ מחפש...' : '⏸️ מושהה';
   const statusColor = isPending ? '#f59e0b' : isDetecting ? '#22D97F' : '#6b7280';
 
+  // Webcam card border color — red when there's a detection error
+  const webcamBorderColor = detectionError
+    ? 'rgba(239,68,68,0.4)'
+    : `${statusColor}40`;
+
+  // ── Welcome Screen ─────────────────────────────────────────────────────────
+  if (showWelcome) {
+    return <WelcomeScreen onComplete={handleWelcomeComplete} />;
+  }
+
   return (
     <>
       <Header profile={profile} onSettingsClick={() => setShowApiKey(true)} />
 
-      {/* Toast */}
+      {/* Persistent error banner for API key issues */}
+      {detectionError && isPersistentError(detectionError) && (
+        <ErrorBanner
+          message={getErrorMessage(detectionError)}
+          onClick={() => setShowApiKey(true)}
+        />
+      )}
+
+      {/* Food detection toast */}
       <AnimatePresence>
         {toast && <FoodToast entry={toast} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
+      {/* Error toast (transient errors) */}
+      <AnimatePresence>
+        {errorToast && !toast && (
+          <ErrorToast
+            message={errorToast}
+            onClose={() => setErrorToast(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* API Key Modal */}
       {showApiKey && <ApiKeyModal onSave={handleApiKeySave} onClose={() => setShowApiKey(false)} />}
+
+      {/* Confirm Food Dialog (low confidence / needs_user_input) */}
+      {confirmEntry && (
+        <ConfirmFoodDialog
+          entry={confirmEntry}
+          userQuestion={confirmQuestion}
+          onConfirm={handleConfirm}
+          onEdit={handleConfirmEdit}
+          onReject={handleConfirmReject}
+        />
+      )}
+
+      {/* Edit Food Dialog */}
+      {editEntry && (
+        <EditFoodDialog
+          entry={editEntry}
+          onSave={handleEditSave}
+          onDelete={(id) => { onDeleteEntry(id); setEditEntry(null); }}
+          onClose={() => setEditEntry(null)}
+        />
+      )}
 
       <MainLayout
         mobileTopCard={
           /* Compact 16:9 webcam card for mobile — shown inline above dashboard */
           <div
             className="rounded-2xl overflow-hidden relative border cursor-pointer aspect-video"
-            style={{ background: '#0a0a0f', borderColor: `${statusColor}40` }}
+            style={{ background: '#0a0a0f', borderColor: webcamBorderColor }}
             onClick={toggleDetection}
           >
             {webcamStatus === 'active' || webcamStatus === 'requesting' ? (
@@ -339,7 +553,9 @@ export default function DashboardPage() {
               className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
               style={{ background: 'rgba(0,0,0,0.7)' }}
             >
-              <span style={{ color: statusColor }}>{statusText}</span>
+              <span style={{ color: detectionError ? '#ef4444' : statusColor }}>
+                {detectionError && !isPersistentError(detectionError) ? '⚠️ שגיאה' : statusText}
+              </span>
               <span className="text-gray-500">
                 {isDetecting ? 'לחץ להשהיה' : 'לחץ להפעלה'}
               </span>
@@ -355,7 +571,7 @@ export default function DashboardPage() {
               </div>
             )}
             {/* Scan line animation when detecting */}
-            {isDetecting && (
+            {isDetecting && !detectionError && (
               <div
                 className="absolute left-0 right-0 h-0.5 pointer-events-none"
                 style={{
@@ -371,7 +587,7 @@ export default function DashboardPage() {
             {/* REAL Webcam */}
             <div
               className="rounded-2xl overflow-hidden relative border cursor-pointer"
-              style={{ background: '#0a0a0f', borderColor: `${statusColor}40` }}
+              style={{ background: '#0a0a0f', borderColor: webcamBorderColor }}
               onClick={toggleDetection}
             >
               {webcamStatus === 'active' || webcamStatus === 'requesting' ? (
@@ -404,13 +620,15 @@ export default function DashboardPage() {
                 className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between text-xs font-mono"
                 style={{ background: 'rgba(0,0,0,0.7)' }}
               >
-                <span style={{ color: statusColor }}>{statusText}</span>
+                <span style={{ color: detectionError ? '#ef4444' : statusColor }}>
+                  {detectionError && !isPersistentError(detectionError) ? '⚠️ שגיאה' : statusText}
+                </span>
                 <span className="text-gray-500">
                   {isDetecting ? 'לחץ להשהיה' : 'לחץ להפעלה'}
                 </span>
               </div>
               {/* Scan line animation when detecting */}
-              {isDetecting && (
+              {isDetecting && !detectionError && (
                 <div
                   className="absolute left-0 right-0 h-0.5 pointer-events-none"
                   style={{
@@ -421,9 +639,19 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Detection error */}
+            {/* Detection error — more visible on sidebar */}
             {detectionError && (
-              <div className="text-xs text-red-400 px-2">{detectionError}</div>
+              <div
+                className="rounded-xl p-3 text-sm cursor-pointer"
+                style={{
+                  background: isPersistentError(detectionError) ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                  border: `1px solid ${isPersistentError(detectionError) ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                  color: isPersistentError(detectionError) ? '#fca5a5' : '#fcd34d',
+                }}
+                onClick={isPersistentError(detectionError) ? () => setShowApiKey(true) : undefined}
+              >
+                {getErrorMessage(detectionError)}
+              </div>
             )}
 
             {/* Coach */}
@@ -466,7 +694,7 @@ export default function DashboardPage() {
           <HourlyChart data={hourlyData} />
           <FoodLog
             entries={todayLog.entries}
-            onEditEntry={(entry) => console.log('Edit:', entry.id)}
+            onEditEntry={onEditEntry}
             onDeleteEntry={onDeleteEntry}
           />
         </div>

@@ -54,13 +54,33 @@ export default function FoodLog({ entries, onEditEntry, onDeleteEntry, className
 
 function EmptyState() {
   return (
-    <div className="glass-card p-lg sm:p-xl flex flex-col items-center justify-center text-center animate-fade-in-up">
-      <span className="text-4xl mb-md">🍽️</span>
-      <p className="text-text-primary text-body font-semibold mb-xs">
+    <div className="glass-card p-lg sm:p-xl flex flex-col items-center justify-center text-center animate-fade-in-up py-10 sm:py-14">
+      <div className="text-5xl sm:text-6xl mb-md relative">
+        🍽️
+        <span
+          className="absolute -top-2 -left-3 text-2xl animate-bounce"
+          style={{ animationDelay: '0s', animationDuration: '2s' }}
+        >
+          🥗
+        </span>
+        <span
+          className="absolute -top-1 -right-4 text-xl animate-bounce"
+          style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}
+        >
+          🍎
+        </span>
+        <span
+          className="absolute -bottom-2 -left-5 text-lg animate-bounce"
+          style={{ animationDelay: '1s', animationDuration: '3s' }}
+        >
+          🥑
+        </span>
+      </div>
+      <p className="text-text-primary text-lg sm:text-xl font-bold mb-xs">
         עדיין לא אכלת היום
       </p>
-      <p className="text-text-secondary text-body-sm">
-        המצלמה פעילה — תאכל משהו ואני אזהה את זה!
+      <p className="text-text-secondary text-body-sm max-w-[250px]">
+        הכל מוכן — תפתח אוכל ליד המצלמה
       </p>
     </div>
   );
