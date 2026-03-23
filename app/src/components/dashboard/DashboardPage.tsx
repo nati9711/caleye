@@ -28,15 +28,15 @@ function createEmptyLog(): DailyLog {
   };
 }
 
-function buildHourlyData(entries: FoodEntry[]): { hour: number; calories: number; label: string }[] {
-  const hours: { hour: number; calories: number; label: string }[] = [];
+function buildHourlyData(entries: FoodEntry[]) {
+  const hours: { hour: number; calories: number; foods: string[] }[] = [];
   for (let h = 6; h <= 23; h++) {
-    hours.push({ hour: h, calories: 0, label: h.toString().padStart(2, '0') });
+    hours.push({ hour: h, calories: 0, foods: [] });
   }
   for (const entry of entries) {
     const hour = new Date(entry.timestamp).getHours();
     const bucket = hours.find((b) => b.hour === hour);
-    if (bucket) bucket.calories += entry.calories;
+    if (bucket) { bucket.calories += entry.calories; bucket.foods.push(entry.foodHe); }
   }
   return hours;
 }
