@@ -168,8 +168,11 @@ export function useFoodDetection(
         ...recentDetectionsRef.current,
       ].slice(0, MAX_RECENT_DETECTIONS);
 
+      // Use AI's gram estimate, default to 100g if missing
+      const estimatedGrams = result.estimatedGrams ?? 100;
+      console.log(`[CalEye] AI estimated: ${result.food} = ${estimatedGrams}g`);
+
       // Look up REAL nutrition data from USDA
-      const estimatedGrams = result.calories ? Math.round((result.calories / 200) * 100) : 100; // rough estimate if no grams
       const usdaData = await lookupNutrition(result.food ?? '', estimatedGrams);
 
       // Create the food entry — prefer USDA data over AI estimate

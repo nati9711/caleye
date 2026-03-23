@@ -133,6 +133,7 @@ export interface DetectionResult {
   eating: boolean;
   food?: string;
   foodHe?: string;
+  estimatedGrams?: number;
   calories?: number;
   protein?: number;
   carbs?: number;

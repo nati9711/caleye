@@ -207,15 +207,18 @@ function parseDetectionResponse(raw: string): DetectionResult {
   if (parsed.foods && Array.isArray(parsed.foods) && parsed.foods.length > 0) {
     const mainFood = parsed.foods[0];
     const allFoodNames = parsed.foods.map((f: { foodHe?: string }) => f.foodHe || '').join(' + ');
+    // Sum up estimated grams from all foods
+    const totalGrams = parsed.foods.reduce((sum: number, f: { estimated_grams?: number }) => sum + (f.estimated_grams ?? 100), 0);
     return {
       eating: true,
-      food: parsed.foods.map((f: { food?: string }) => f.food || '').join(' + '),
-      foodHe: allFoodNames || 'מזון לא ידוע',
+      food: parsed.foods.map((f: { food?: string; name_en?: string }) => f.food || f.name_en || '').join(' + '),
+      foodHe: allFoodNames || parsed.foods.map((f: { name_he?: string }) => f.name_he || '').join(' + ') || 'מזון לא ידוע',
+      estimatedGrams: totalGrams,
       calories: clampNumber(parsed.total_calories ?? mainFood?.calories, 0, 5000),
       protein: clampNumber(parsed.total_protein ?? mainFood?.protein, 0, 500),
       carbs: clampNumber(parsed.total_carbs ?? mainFood?.carbs, 0, 500),
       fat: clampNumber(parsed.total_fat ?? mainFood?.fat, 0, 500),
-      confidence: clampNumber(mainFood?.confidence, 0, 1),
+      confidence: clampNumber(mainFood?.confidence ?? mainFood?.confidence_identification, 0, 1),
     };
   }
 
