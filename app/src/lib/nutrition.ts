@@ -60,7 +60,8 @@ export async function lookupNutrition(
     console.log(`[CalEye/USDA] ✅ Found: "${food.description}" (fdcId: ${food.fdcId})`);
 
     // Extract nutrients (USDA values are per 100g)
-    const caloriesPer100 = findNutrient(food.foodNutrients, 'Energy') ?? 0;
+    // IMPORTANT: USDA returns Energy in BOTH kJ and KCAL — we need KCAL only!
+    const caloriesPer100 = findNutrientExact(food.foodNutrients, 'Energy', 'KCAL') ?? 0;
     const proteinPer100 = findNutrient(food.foodNutrients, 'Protein') ?? 0;
     const carbsPer100 = findNutrient(food.foodNutrients, 'Carbohydrate, by difference') ?? 0;
     const fatPer100 = findNutrient(food.foodNutrients, 'Total lipid (fat)') ?? 0;
@@ -91,6 +92,19 @@ function findNutrient(
 ): number | null {
   const found = nutrients.find((n) =>
     n.nutrientName.toLowerCase().includes(name.toLowerCase())
+  );
+  return found ? found.value : null;
+}
+
+/** Find nutrient by name AND unit (critical for Energy — kJ vs KCAL) */
+function findNutrientExact(
+  nutrients: { nutrientName: string; unitName: string; value: number }[],
+  name: string,
+  unit: string
+): number | null {
+  const found = nutrients.find((n) =>
+    n.nutrientName.toLowerCase().includes(name.toLowerCase()) &&
+    n.unitName === unit
   );
   return found ? found.value : null;
 }
