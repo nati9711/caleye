@@ -298,36 +298,42 @@ export async function testConnection(
   }
 
   try {
-    const url = `${API_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${key}`;
-
-    const response = await fetch(url, {
+    // Test via OpenRouter — simple text completion
+    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: 'Respond with: {"status":"ok"}' }],
-          },
-        ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-        },
+        model: GEMINI_MODEL,
+        messages: [{ role: 'user', content: 'Say OK' }],
+        max_tokens: 5,
       }),
     });
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      if (response.status === 400 || response.status === 403) {
-        return { success: false, error: 'מפתח API לא תקין' };
+      if (response.status === 401 || response.status === 403) {
+        return { success: false, error: 'מפתח API לא תקין — בדוק שהמפתח נכון' };
+      }
+      if (response.status === 402) {
+        return { success: false, error: 'אין מספיק קרדיט בחשבון OpenRouter' };
+      }
+      if (response.status === 429) {
+        return { success: false, error: 'יותר מדי בקשות — נסה שוב בעוד דקה' };
       }
       return {
         success: false,
-        error: `שגיאת API: ${response.status} ${body.slice(0, 100)}`,
+        error: `שגיאת API (${response.status}): ${body.slice(0, 100)}`,
       };
     }
 
     return { success: true };
   } catch (err) {
+    if (err instanceof TypeError && err.message.includes('fetch')) {
+      return { success: false, error: 'בעיית חיבור — בדוק את האינטרנט' };
+    }
     const message = err instanceof Error ? err.message : 'שגיאה לא ידועה';
     return { success: false, error: message };
   }
